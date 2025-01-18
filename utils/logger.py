@@ -17,14 +17,16 @@ class CustomFormatter(logging.Formatter):
     bold_red = "\x1b[31;1m"
     reset = "\x1b[0m"
 
-    format_str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
+    format_str = (
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
+    )
 
     FORMATS = {
         logging.DEBUG: grey + format_str + reset,
         logging.INFO: blue + format_str + reset,
         logging.WARNING: yellow + format_str + reset,
         logging.ERROR: red + format_str + reset,
-        logging.CRITICAL: bold_red + format_str + reset
+        logging.CRITICAL: bold_red + format_str + reset,
     }
 
     def format(self, record):
@@ -35,6 +37,7 @@ class CustomFormatter(logging.Formatter):
 
 class JSONFormatter(logging.Formatter):
     """JSON formatter for file output"""
+
     def format(self, record):
         log_record = {
             "timestamp": datetime.utcfromtimestamp(record.created).isoformat(),
@@ -52,7 +55,9 @@ class JSONFormatter(logging.Formatter):
         return json.dumps(log_record)
 
 
-def setup_logger(name: str, log_level: str = "INFO", log_dir: Path = None) -> logging.Logger:
+def setup_logger(
+    name: str, log_level: str = "INFO", log_dir: Path = None
+) -> logging.Logger:
     """
     Set up a logger with both console and file handlers
 
@@ -86,7 +91,7 @@ def setup_logger(name: str, log_level: str = "INFO", log_dir: Path = None) -> lo
             filename=log_dir / f"{name}.log",
             maxBytes=10485760,  # 10MB
             backupCount=5,
-            encoding="utf-8"
+            encoding="utf-8",
         )
         file_handler.setFormatter(JSONFormatter())
         logger.addHandler(file_handler)
@@ -96,7 +101,7 @@ def setup_logger(name: str, log_level: str = "INFO", log_dir: Path = None) -> lo
             filename=log_dir / f"{name}.error.log",
             maxBytes=10485760,  # 10MB
             backupCount=5,
-            encoding="utf-8"
+            encoding="utf-8",
         )
         error_handler.setLevel(logging.ERROR)
         error_handler.setFormatter(JSONFormatter())

@@ -5,16 +5,18 @@ from config.logging_config import CURRENT_LOGGING_CONFIG
 from utils.logger import setup_logger
 
 logger = setup_logger(
-    'data_processor',
-    log_level=CURRENT_LOGGING_CONFIG['log_level'],
-    log_dir=CURRENT_LOGGING_CONFIG['log_dir']
+    "data_processor",
+    log_level=CURRENT_LOGGING_CONFIG["log_level"],
+    log_dir=CURRENT_LOGGING_CONFIG["log_dir"],
 )
 
 
 class GeoDataProcessor:
     def __init__(self, data_dir="data/raw/natural_earth"):
         self.data_dir = Path(data_dir)
-        logger.info(f"Initialized GeoDataProcessor with data directory: {self.data_dir}")
+        logger.info(
+            f"Initialized GeoDataProcessor with data directory: {self.data_dir}"
+        )
 
     def load_states(self):
         """Load and process the states shapefile"""
@@ -36,8 +38,8 @@ class GeoDataProcessor:
                 states_gdf = states_gdf.to_crs("EPSG:4326")
 
             # Add a simple ID field
-            states_gdf['id'] = range(len(states_gdf))
-            states_gdf['name'] = [f'Region {i}' for i in range(len(states_gdf))]
+            states_gdf["id"] = range(len(states_gdf))
+            states_gdf["name"] = [f"Region {i}" for i in range(len(states_gdf))]
 
             geojson_data = json.loads(states_gdf.to_json())
             logger.info("Successfully converted data to GeoJSON")

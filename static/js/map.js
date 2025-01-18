@@ -1,15 +1,9 @@
-// Initialize the map
 const map = L.map('map').setView([39.8283, -98.5795], 4); // Center on US
-
-// Add the tile layer
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxZoom: 18
 }).addTo(map);
 
-// ... (previous map initialization code remains the same)
-
-// Style function for the states
 function getStateStyle(feature) {
     return {
         fillColor: '#3388ff',

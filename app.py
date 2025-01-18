@@ -4,9 +4,9 @@ from utils.logger import setup_logger
 from config.logging_config import CURRENT_LOGGING_CONFIG
 
 logger = setup_logger(
-    'flask_app',
-    log_level=CURRENT_LOGGING_CONFIG['log_level'],
-    log_dir=CURRENT_LOGGING_CONFIG['log_dir']
+    "flask_app",
+    log_level=CURRENT_LOGGING_CONFIG["log_level"],
+    log_dir=CURRENT_LOGGING_CONFIG["log_dir"],
 )
 
 app = Flask(__name__)
@@ -15,13 +15,13 @@ app = Flask(__name__)
 data_processor = GeoDataProcessor()
 
 
-@app.route('/')
+@app.route("/")
 def index():
     logger.debug("Serving index page")
-    return render_template('index.html')
+    return render_template("index.html")
 
 
-@app.route('/api/states')
+@app.route("/api/states")
 def get_states():
     """API endpoint to serve state boundary data"""
     logger.debug("Handling /api/states request")
@@ -33,6 +33,6 @@ def get_states():
     return jsonify({"error": "Failed to load state data"}), 500
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logger.info("Starting Flask application")
     app.run(debug=True)
