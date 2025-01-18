@@ -21,7 +21,7 @@ class GeoDataProcessor:
     def load_states(self):
         """Load and process the states shapefile"""
         try:
-            shapefile_path = self.data_dir / "110m_states_provinces.shp"
+            shapefile_path = self.data_dir / "50m_states_provinces_lakes.shp"
             logger.debug(f"Loading shapefile from: {shapefile_path}")
 
             states_gdf = gpd.read_file(shapefile_path)
