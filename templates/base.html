@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Census Heatmap{% endblock %}</title>
+    <title>{% block title %}GIS Playground{% endblock %}</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -25,7 +25,7 @@
         <div class="flex justify-between h-16">
             <div class="flex">
                 <div class="flex-shrink-0 flex items-center">
-                    <span class="text-xl font-bold text-gray-800">Census Heatmap</span>
+                    <span class="text-xl font-bold text-gray-800">GIS Playground</span>
                 </div>
             </div>
         </div>
@@ -47,6 +47,8 @@
 <!-- Esri Leaflet -->
 <script src="https://unpkg.com/esri-leaflet@3.0.10/dist/esri-leaflet.js"></script>
 <script src="https://unpkg.com/esri-leaflet-renderers@3.0.1/dist/esri-leaflet-renderers.js"></script>
+<script src="https://unpkg.com/esri-leaflet-cluster@3.0.0/dist/esri-leaflet-cluster.js"></script>
+<script src="https://unpkg.com/esri-leaflet-vector@4.0.1/dist/esri-leaflet-vector.js"></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

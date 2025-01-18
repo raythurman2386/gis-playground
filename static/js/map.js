@@ -54,22 +54,38 @@ const map = L.map('map', {
     layers: [baseMaps['OpenStreetMap']]
 });
 
-const wildfireLayer = L.esri.featureLayer({
-    url: 'https://services9.arcgis.com/RHVPKKiFTONKtxq3/ArcGIS/rest/services/USA_Wildfires_v1/FeatureServer/0',
-    style: function (feature) {
-        return {
-            color: '#ff0000',
-            weight: 1,
+// Create the incidents layer
+const wildfireIncidents = L.esri.featureLayer({
+    url: 'https://services9.arcgis.com/RHVPKKiFTONKtxq3/arcgis/rest/services/USA_Wildfires_v1/FeatureServer/0',
+    pointToLayer: function (feature, latlng) {
+        return L.circleMarker(latlng, {
+            radius: 24,
+            fillColor: "#ff0000",
+            color: "#ffffff",
+            weight: 2,
             opacity: 1,
             fillOpacity: 0.7
+        });
+    }
+}).on('click mouseover', function(e) {
+    updateFireStatistics(e.layer.feature.properties, 'incident');
+}).on('mouseout', clearStatistics);
+
+// Create the perimeters layer
+const wildfirePerimeters = L.esri.featureLayer({
+    url: 'https://services9.arcgis.com/RHVPKKiFTONKtxq3/arcgis/rest/services/USA_Wildfires_v1/FeatureServer/1',
+    style: function(feature) {
+        const containment = feature.properties.PercentContained || 0;
+        return {
+            color: "#F44336",
+            weight: 2,
+            opacity: 0.8,
+            fillOpacity: 0.35
         };
     }
 }).on('click mouseover', function(e) {
-    const properties = e.layer.feature.properties;
-    updateFireStatistics(properties);
-}).on('mouseout', function() {
-    clearStatistics();
-});
+    updateFireStatistics(e.layer.feature.properties, 'perimeter');
+}).on('mouseout', clearStatistics);
 
 // Style function for the states
 function getStateStyle(feature) {
@@ -114,19 +130,36 @@ function onEachFeature(feature, layer) {
     });
 }
 
-function updateFireStatistics(properties) {
+function updateFireStatistics(properties, type) {
     const statsDiv = document.getElementById('statistics');
-    statsDiv.innerHTML = `
-        <div class="space-y-2">
-            <p class="font-semibold text-red-600">Wildfire Information</p>
-            <p><strong>Fire Name:</strong> ${properties.IncidentName || 'Unknown'}</p>
-            <p><strong>Status:</strong> ${properties.IncidentStatus || 'Unknown'}</p>
-            <p><strong>Size:</strong> ${properties.DailyAcres ? properties.DailyAcres.toLocaleString() : 'Unknown'} acres</p>
-            <p><strong>Reported:</strong> ${properties.CreateDate ? new Date(properties.CreateDate).toLocaleDateString() : 'Unknown'}</p>
-            <p><strong>Containment:</strong> ${properties.PercentContained || '0'}%</p>
-            ${properties.ComplexName ? `<p><strong>Complex:</strong> ${properties.ComplexName}</p>` : ''}
-        </div>
-    `;
+
+    if (type === 'incident') {
+        statsDiv.innerHTML = `
+            <div class="space-y-2">
+                <p class="font-semibold text-red-600">Active Fire Incident</p>
+                <p><strong>Fire Name:</strong> ${properties.IncidentName || 'Unknown'}</p>
+                <p><strong>Status:</strong> ${properties.IncidentStatus || 'Unknown'}</p>
+                <p><strong>Size:</strong> ${properties.DailyAcres ? properties.DailyAcres.toLocaleString() : 'Unknown'} acres</p>
+                <p><strong>Discovered:</strong> ${properties.FireDiscoveryDateTime ? new Date(properties.FireDiscoveryDateTime).toLocaleString() : 'Unknown'}</p>
+                <p><strong>Containment:</strong> ${properties.PercentContained || '0'}%</p>
+                <p><strong>Cause:</strong> ${properties.FireCause || 'Unknown'}</p>
+                ${properties.ComplexName ? `<p><strong>Complex:</strong> ${properties.ComplexName}</p>` : ''}
+                <p><strong>Agency:</strong> ${properties.POOProtectingAgency || 'Unknown'}</p>
+            </div>
+        `;
+    } else if (type === 'perimeter') {
+        statsDiv.innerHTML = `
+            <div class="space-y-2">
+                <p class="font-semibold text-orange-600">Fire Perimeter</p>
+                <p><strong>Fire Name:</strong> ${properties.IncidentName || 'Unknown'}</p>
+                <p><strong>Total Area:</strong> ${properties.GISAcres ? properties.GISAcres.toLocaleString() : 'Unknown'} acres</p>
+                <p><strong>Containment:</strong> ${properties.PercentContained || '0'}%</p>
+                <p><strong>Updated:</strong> ${properties.CreateDate ? new Date(properties.CreateDate).toLocaleString() : 'Unknown'}</p>
+                ${properties.ComplexName ? `<p><strong>Complex:</strong> ${properties.ComplexName}</p>` : ''}
+                <p><strong>Type:</strong> ${properties.IncidentTypeCategory || 'Unknown'}</p>
+            </div>
+        `;
+    }
 }
 
 function clearStatistics() {
@@ -167,7 +200,8 @@ fetch('/api/states')
         // Create overlay layers object
         const overlayMaps = {
             'State Boundaries': statesLayer,
-            'Active Wildfires': wildfireLayer,
+            'Fire Incidents': wildfireIncidents,
+            'Fire Perimeters': wildfirePerimeters
         };
 
         // Add layer control

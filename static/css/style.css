@@ -52,3 +52,48 @@
 #statistics p {
     margin-bottom: 0.25rem;
 }
+
+/* For Options 1 & 2 */
+.custom-fire-marker {
+    cursor: pointer;
+}
+
+.custom-fire-marker:hover {
+    transform: scale(1.2);
+    transition: transform 0.2s;
+}
+
+/* For Option 3 */
+.fire-icon {
+    font-size: 24px;
+    text-align: center;
+    line-height: 24px;
+    cursor: pointer;
+}
+
+/* For Option 4 */
+.fire-marker {
+    overflow: visible;
+}
+
+.fire-marker-circle {
+    fill: rgba(255, 0, 0, 0.2);
+    stroke: #ffffff;
+    stroke-width: 2;
+}
+
+.fire-marker-inner {
+    fill: #ff0000;
+    stroke: #ffffff;
+    stroke-width: 1;
+}
+
+.custom-fire-icon {
+    cursor: pointer;
+}
+
+.custom-fire-icon:hover .fire-marker {
+    transform: scale(1.2);
+    transform-origin: center;
+    transition: transform 0.2s;
+}
