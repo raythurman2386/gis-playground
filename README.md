@@ -1,8 +1,8 @@
-# Census Data Heatmap
+# GIS Playground
 
-An interactive web application that visualizes U.S. Census demographic data through dynamic heatmaps and choropleth maps.
+GIS Playground is an interactive web mapping application that combines real-time wildfire data from ESRI's feature services with state boundary visualization, allowing users to explore active fire incidents and their perimeters while toggling between various base maps. The project demonstrates modern web GIS capabilities, featuring dynamic data visualization, interactive statistics panels, and will expand to include custom shapefile uploads and Census data integration.
 
-![Census Heatmap](static/images/census_project.jpeg)
+![GIS Playground](static/images/gis_playground.png)
 
 ## Features
 
