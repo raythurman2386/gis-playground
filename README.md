@@ -78,3 +78,9 @@ python app.py
 
 - U.S. Census Bureau for providing the API
 - Natural Earth Data for boundary files
+
+## Additional Resources
+
+- [Natural Earth Data](https://www.naturalearthdata.com/)
+- [Census Data API](https://api.census.gov)
+- [Leaflet Providers](https://leaflet-extras.github.io/leaflet-providers/preview/)
