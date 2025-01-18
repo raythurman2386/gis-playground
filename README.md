@@ -2,6 +2,8 @@
 
 An interactive web application that visualizes U.S. Census demographic data through dynamic heatmaps and choropleth maps.
 
+![Census Heatmap](static/images/census_project.jpeg)
+
 ## Features
 
 - Interactive heatmap/choropleth visualization of demographic data
