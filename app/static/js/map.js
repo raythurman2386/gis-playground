@@ -48,6 +48,21 @@ const map = L.map('map', {
     layers: [baseMaps['OpenStreetMap']]
 });
 
+const STATS_TIMEOUT = 5000; // 5 seconds timeout
+let statsTimeoutId = null;
+
+function saveStatsToLocalStorage(properties, type) {
+    localStorage.setItem('currentStats', JSON.stringify({
+        properties,
+        type,
+        timestamp: Date.now()
+    }));
+}
+
+function clearStatsFromLocalStorage() {
+    localStorage.removeItem('currentStats');
+}
+
 // ESRI Fire Layers
 const wildfireIncidents = L.esri.featureLayer({
     url: 'https://services9.arcgis.com/RHVPKKiFTONKtxq3/arcgis/rest/services/USA_Wildfires_v1/FeatureServer/0',
@@ -63,7 +78,7 @@ const wildfireIncidents = L.esri.featureLayer({
     }
 }).on('click mouseover', function(e) {
     updateFireStatistics(e.layer.feature.properties, 'incident');
-}).on('mouseout', clearStatistics);
+})
 
 const wildfirePerimeters = L.esri.featureLayer({
     url: 'https://services9.arcgis.com/RHVPKKiFTONKtxq3/arcgis/rest/services/USA_Wildfires_v1/FeatureServer/1',
@@ -77,48 +92,7 @@ const wildfirePerimeters = L.esri.featureLayer({
     }
 }).on('click mouseover', function(e) {
     updateFireStatistics(e.layer.feature.properties, 'perimeter');
-}).on('mouseout', clearStatistics);
-
-function updateFireStatistics(properties, type) {
-    const statsDiv = document.getElementById('statistics');
-
-    if (type === 'incident') {
-        statsDiv.innerHTML = `
-            <div class="space-y-2">
-                <p class="font-semibold text-red-600">Active Fire Incident</p>
-                <p><strong>Fire Name:</strong> ${properties.IncidentName || 'Unknown'}</p>
-                <p><strong>Status:</strong> ${properties.IncidentStatus || 'Unknown'}</p>
-                <p><strong>Size:</strong> ${properties.DailyAcres ? properties.DailyAcres.toLocaleString() : 'Unknown'} acres</p>
-                <p><strong>Discovered:</strong> ${properties.FireDiscoveryDateTime ? new Date(properties.FireDiscoveryDateTime).toLocaleString() : 'Unknown'}</p>
-                <p><strong>Containment:</strong> ${properties.PercentContained || '0'}%</p>
-                <p><strong>Cause:</strong> ${properties.FireCause || 'Unknown'}</p>
-                ${properties.ComplexName ? `<p><strong>Complex:</strong> ${properties.ComplexName}</p>` : ''}
-                <p><strong>Agency:</strong> ${properties.POOProtectingAgency || 'Unknown'}</p>
-            </div>
-        `;
-    } else if (type === 'perimeter') {
-        statsDiv.innerHTML = `
-            <div class="space-y-2">
-                <p class="font-semibold text-orange-600">Fire Perimeter</p>
-                <p><strong>Fire Name:</strong> ${properties.IncidentName || 'Unknown'}</p>
-                <p><strong>Total Area:</strong> ${properties.GISAcres ? properties.GISAcres.toLocaleString() : 'Unknown'} acres</p>
-                <p><strong>Containment:</strong> ${properties.PercentContained || '0'}%</p>
-                <p><strong>Updated:</strong> ${properties.CreateDate ? new Date(properties.CreateDate).toLocaleString() : 'Unknown'}</p>
-                ${properties.ComplexName ? `<p><strong>Complex:</strong> ${properties.ComplexName}</p>` : ''}
-                <p><strong>Type:</strong> ${properties.IncidentTypeCategory || 'Unknown'}</p>
-            </div>
-        `;
-    }
-}
-
-function clearStatistics() {
-    const statsDiv = document.getElementById('statistics');
-    statsDiv.innerHTML = `
-        <p class="text-gray-600">
-            Hover over or click a feature to view statistics
-        </p>
-    `;
-}
+})
 
 // Set up layer control
 const overlayMaps = {
@@ -377,7 +351,6 @@ function loadLayer(layerId, layerName) {
                         mouseout: function(e) {
                             const layer = e.target;
                             layer.setStyle(layer.defaultStyle);
-                            clearStatistics();
                         },
                         click: function(e) {
                             map.fitBounds(e.target.getBounds());
@@ -405,16 +378,108 @@ function removeLayer(layerId) {
     }
 }
 
-function updateCustomLayerStatistics(properties) {
+function displayStatistics(properties, type) {
     const statsDiv = document.getElementById('statistics');
-    let html = '<div class="space-y-2"><p class="font-semibold">Feature Properties</p>';
 
-    for (const [key, value] of Object.entries(properties)) {
-        html += `<p><strong>${key}:</strong> ${value || 'N/A'}</p>`;
+    if (type === 'incident') {
+        statsDiv.innerHTML = `
+            <div class="space-y-2">
+                <p class="font-semibold text-red-600">Active Fire Incident</p>
+                <p><strong>Fire Name:</strong> ${properties.IncidentName || 'Unknown'}</p>
+                <p><strong>Status:</strong> ${properties.IncidentStatus || 'Unknown'}</p>
+                <p><strong>Size:</strong> ${properties.DailyAcres ? properties.DailyAcres.toLocaleString() : 'Unknown'} acres</p>
+                <p><strong>Discovered:</strong> ${properties.FireDiscoveryDateTime ? new Date(properties.FireDiscoveryDateTime).toLocaleString() : 'Unknown'}</p>
+                <p><strong>Containment:</strong> ${properties.PercentContained || '0'}%</p>
+                <p><strong>Cause:</strong> ${properties.FireCause || 'Unknown'}</p>
+                ${properties.ComplexName ? `<p><strong>Complex:</strong> ${properties.ComplexName}</p>` : ''}
+                <p><strong>Agency:</strong> ${properties.POOProtectingAgency || 'Unknown'}</p>
+            </div>
+        `;
+    } else if (type === 'perimeter') {
+        statsDiv.innerHTML = `
+            <div class="space-y-2">
+                <p class="font-semibold text-orange-600">Fire Perimeter</p>
+                <p><strong>Fire Name:</strong> ${properties.IncidentName || 'Unknown'}</p>
+                <p><strong>Total Area:</strong> ${properties.GISAcres ? properties.GISAcres.toLocaleString() : 'Unknown'} acres</p>
+                <p><strong>Containment:</strong> ${properties.PercentContained || '0'}%</p>
+                <p><strong>Updated:</strong> ${properties.CreateDate ? new Date(properties.CreateDate).toLocaleString() : 'Unknown'}</p>
+                ${properties.ComplexName ? `<p><strong>Complex:</strong> ${properties.ComplexName}</p>` : ''}
+                <p><strong>Type:</strong> ${properties.IncidentTypeCategory || 'Unknown'}</p>
+            </div>
+        `;
+    } else {
+        // Custom layer statistics
+        let html = '<div class="space-y-2"><p class="font-semibold">Feature Properties</p>';
+        for (const [key, value] of Object.entries(properties)) {
+            html += `<p><strong>${key}:</strong> ${value || 'N/A'}</p>`;
+        }
+        html += '</div>';
+        statsDiv.innerHTML = html;
     }
-
-    html += '</div>';
-    statsDiv.innerHTML = html;
 }
 
-document.addEventListener('DOMContentLoaded', loadAvailableLayers);
+function updateFireStatistics(properties, type) {
+    // Clear any existing timeout
+    if (statsTimeoutId) {
+        clearTimeout(statsTimeoutId);
+    }
+
+    // Save to localStorage and display
+    saveStatsToLocalStorage(properties, type);
+    displayStatistics(properties, type);
+
+    // Set new timeout
+    statsTimeoutId = setTimeout(() => {
+        clearStatistics();
+    }, STATS_TIMEOUT);
+}
+
+function updateCustomLayerStatistics(properties) {
+    if (statsTimeoutId) {
+        clearTimeout(statsTimeoutId);
+    }
+
+    // Save to localStorage and display
+    saveStatsToLocalStorage(properties, 'custom');
+    displayStatistics(properties, 'custom');
+
+    // Set new timeout
+    statsTimeoutId = setTimeout(() => {
+        clearStatistics();
+    }, STATS_TIMEOUT);
+}
+
+function clearStatistics() {
+    const statsDiv = document.getElementById('statistics');
+    statsDiv.innerHTML = `
+        <p class="text-gray-600">
+            Hover over or click a feature to view statistics
+        </p>
+    `;
+    clearStatsFromLocalStorage();
+}
+
+function checkStoredStatistics() {
+    const storedStats = localStorage.getItem('currentStats');
+    if (storedStats) {
+        const { properties, type, timestamp } = JSON.parse(storedStats);
+
+        // Check if the stored stats are still within the timeout period
+        if (Date.now() - timestamp < STATS_TIMEOUT) {
+            displayStatistics(properties, type);
+
+            // Set a new timeout for the remaining time
+            const remainingTime = STATS_TIMEOUT - (Date.now() - timestamp);
+            statsTimeoutId = setTimeout(() => {
+                clearStatistics();
+            }, remainingTime);
+        } else {
+            clearStatsFromLocalStorage();
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadAvailableLayers();
+    checkStoredStatistics();
+});
