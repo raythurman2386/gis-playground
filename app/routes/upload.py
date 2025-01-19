@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template
 import os
 from utils.logger import setup_logger
 from config.logging_config import CURRENT_LOGGING_CONFIG
@@ -27,17 +27,20 @@ def upload_shapefile():
         # Validate request
         layer_name = request.form.get("layer_name")
         if not layer_name:
-            return jsonify({"error": "Layer name is required"}), 400
+            return render_template("upload_error.html",
+                            error_message="Layer name is required")
 
         # Check for required files
         required_files = {}
         for ext in REQUIRED_EXTENSIONS:
             file_key = f"file_{ext[1:]}"
             if file_key not in request.files:
-                return jsonify({"error": f"Missing {ext} file"}), 400
+                return render_template("upload_error.html",
+                                       error_message=f"Missing {ext} file")
             file = request.files[file_key]
             if file.filename == "":
-                return jsonify({"error": f"No {ext} file selected"}), 400
+                return render_template("upload_error.html",
+                                       error_message=f"No {ext} file selected")
             required_files[ext] = file
 
         # Create temporary directory and save files
@@ -64,8 +67,10 @@ def upload_shapefile():
             )
 
             if result["success"]:
-                return jsonify(result), 201
-            return jsonify({"error": result["error"]}), 500
+                result["layer_name"] = layer_name
+                return render_template("upload_success.html", result=result)
+            return render_template("upload_error.html",
+                                   error_message=result["error"])
 
         finally:
             # Clean up
@@ -77,4 +82,5 @@ def upload_shapefile():
 
     except Exception as e:
         logger.error(f"Error in upload process: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
+        return render_template("upload_error.html",
+                               error_message=str(e))

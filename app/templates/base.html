@@ -23,10 +23,10 @@
     <div class="max-w-7xl mx-auto px-4">
         <div class="flex justify-between h-16 items-center">
             <div class="flex items-center">
-                <span class="text-xl font-bold text-gray-800">GIS Playground</span>
+                <a href="{{ url_for('main.index') }}" class="text-xl font-bold text-gray-800">GIS Playground</a>
             </div>
             <div class="flex items-center">
-                <a href="/upload" class="ml-4 text-sm font-semibold text-gray-800">Upload</a>
+                <a href="{{ url_for('main.upload_form') }}" class="ml-4 text-sm font-semibold text-gray-800">Upload</a>
             </div>
         </div>
     </div>

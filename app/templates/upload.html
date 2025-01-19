@@ -4,7 +4,20 @@
 <div class="container mx-auto px-4 py-8">
     <h1 class="text-2xl mb-4">Upload Shapefile</h1>
 
-    <form action="{{ url_for('upload.upload_shapefile') }}"
+    <!-- Progress bar container (hidden by default) -->
+    <div id="uploadProgress" class="hidden mb-6">
+        <div class="mb-2 flex justify-between">
+            <span id="progressStatus" class="text-sm text-gray-600">Processing shapefile...</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5">
+            <div class="bg-blue-600 h-2.5 rounded-full animate-pulse"
+                 style="width: 100%">
+            </div>
+        </div>
+    </div>
+
+    <form id="uploadForm"
+          action="{{ url_for('upload.upload_shapefile') }}"
           method="post"
           enctype="multipart/form-data"
           class="space-y-4">
@@ -53,9 +66,31 @@
         </div>
 
         <button type="submit"
+                id="submitButton"
                 class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
             Upload
         </button>
     </form>
 </div>
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('uploadForm');
+        const submitButton = document.getElementById('submitButton');
+        const progressDiv = document.getElementById('uploadProgress');
+
+        function disableForm(disable = true) {
+            submitButton.disabled = disable;
+            submitButton.classList.toggle('opacity-50', disable);
+            submitButton.classList.toggle('cursor-not-allowed', disable);
+        }
+
+        form.addEventListener('submit', function(e) {
+            progressDiv.classList.remove('hidden');
+            disableForm(true);
+        });
+    });
+</script>
+{% endblock %}
 {% endblock %}
