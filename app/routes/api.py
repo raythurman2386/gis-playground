@@ -13,15 +13,3 @@ bp = Blueprint("api", __name__)
 
 # Initialize the data processor
 data_processor = GeoDataProcessor()
-
-
-@bp.route("/states")
-def get_states():
-    """API endpoint to serve state boundary data"""
-    logger.debug("Handling /api/states request")
-    state_data = data_processor.get_state_boundaries()
-    if state_data:
-        logger.info("Successfully served state boundary data")
-        return jsonify(state_data)
-    logger.error("Failed to serve state boundary data")
-    return jsonify({"error": "Failed to load state data"}), 500

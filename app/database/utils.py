@@ -15,10 +15,7 @@ def feature_to_geojson(feature):
     return {
         "type": "Feature",
         "geometry": geojson_geom,
-        "properties": {
-            "id": feature.id,
-            **properties
-        }
+        "properties": {"id": feature.id, **properties},
     }
 
 
@@ -26,5 +23,5 @@ def features_to_geojson(features):
     """Convert multiple features to a GeoJSON FeatureCollection"""
     return {
         "type": "FeatureCollection",
-        "features": [feature_to_geojson(f) for f in features]
+        "features": [feature_to_geojson(f) for f in features],
     }

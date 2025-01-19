@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-2xl mb-4">Upload Shapefile</h1>
+
+    <form action="{{ url_for('upload.upload_shapefile') }}"
+          method="post"
+          enctype="multipart/form-data"
+          class="space-y-4">
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Layer Name</label>
+            <input type="text"
+                   name="layer_name"
+                   required
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Description</label>
+            <textarea name="description"
+                      class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"></textarea>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">.shp File</label>
+                <input type="file"
+                       name="file_shp"
+                       required
+                       accept=".shp"
+                       class="mt-1 block w-full">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">.shx File</label>
+                <input type="file"
+                       name="file_shx"
+                       required
+                       accept=".shx"
+                       class="mt-1 block w-full">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">.dbf File</label>
+                <input type="file"
+                       name="file_dbf"
+                       required
+                       accept=".dbf"
+                       class="mt-1 block w-full">
+            </div>
+        </div>
+
+        <button type="submit"
+                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            Upload
+        </button>
+    </form>
+</div>
+{% endblock %}

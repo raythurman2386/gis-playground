@@ -18,10 +18,11 @@ def create_app():
         raise RuntimeError("Database initialization failed")
 
     # Register blueprints
-    from app.routes import main, api
+    from app.routes import main, api, upload
 
     app.register_blueprint(main.bp)
     app.register_blueprint(api.bp, url_prefix="/api")
+    app.register_blueprint(upload.bp, url_prefix="/api/upload")
 
     logger.info("Flask application initialized")
     return app

@@ -1,8 +1,11 @@
 import geopandas as gpd
 import json
 from pathlib import Path
+from typing import Optional, Dict, Any, Union
 from config.logging_config import CURRENT_LOGGING_CONFIG
 from utils.logger import setup_logger
+from app.database import crud
+from sqlalchemy.orm import Session
 
 logger = setup_logger(
     "data_processor",
@@ -12,49 +15,170 @@ logger = setup_logger(
 
 
 class GeoDataProcessor:
-    def __init__(self, data_dir="data/raw/natural_earth"):
-        self.data_dir = Path(data_dir)
+    def __init__(self, upload_dir: str = "data/uploads"):
+        self.upload_dir = Path(upload_dir)
+        self.upload_dir.mkdir(parents=True, exist_ok=True)
         logger.info(
-            f"Initialized GeoDataProcessor with data directory: {self.data_dir}"
+            f"Initialized GeoDataProcessor with upload directory: {self.upload_dir}"
         )
 
-    def load_states(self):
-        """Load and process the states shapefile"""
+    def process_shapefile(
+        self,
+        shp_path: Union[str, Path],
+        layer_name: str,
+        db_session: Session,
+        description: str = "",
+    ) -> Dict[str, Any]:
+        """
+        Process a shapefile and store it in the database
+
+        Args:
+            shp_path: Path to the shapefile
+            layer_name: Name for the layer in the database
+            db_session: Database session
+            description: Optional description of the layer
+
+        Returns:
+            Dict containing processing results
+        """
         try:
-            shapefile_path = self.data_dir / "50m_states_provinces_lakes.shp"
-            logger.debug(f"Loading shapefile from: {shapefile_path}")
+            # Read the shapefile
+            logger.info(f"Reading shapefile from: {shp_path}")
+            gdf = self._load_and_standardize_geodataframe(shp_path)
 
-            states_gdf = gpd.read_file(shapefile_path)
-            logger.info(f"Loaded shapefile with {len(states_gdf)} features")
+            # Determine geometry type
+            geometry_type = self._get_geometry_type(gdf)
 
-            logger.debug(f"Available columns: {states_gdf.columns.tolist()}")
+            # Create the layer
+            layer = crud.create_spatial_layer(
+                db=db_session,
+                name=layer_name,
+                description=description,
+                geometry_type=geometry_type,
+            )
 
-            if states_gdf.crs is None:
-                logger.warning("CRS not defined in shapefile, setting to EPSG:4326")
-                states_gdf.set_crs(epsg=4326, inplace=True)
+            # Process features
+            features_added = self._process_features(gdf, layer.id, db_session)
 
-            if states_gdf.crs != "EPSG:4326":
-                logger.debug(f"Converting CRS from {states_gdf.crs} to EPSG:4326")
-                states_gdf = states_gdf.to_crs("EPSG:4326")
-
-            # Add a simple ID field
-            states_gdf["id"] = range(len(states_gdf))
-            states_gdf["name"] = [f"Region {i}" for i in range(len(states_gdf))]
-
-            geojson_data = json.loads(states_gdf.to_json())
-            logger.info("Successfully converted data to GeoJSON")
-
-            return geojson_data
+            return {
+                "success": True,
+                "message": "Layer created successfully",
+                "layer_id": layer.id,
+                "feature_count": features_added,
+                "total_features": len(gdf),
+                "geometry_type": geometry_type,
+                "crs": str(gdf.crs),
+            }
 
         except Exception as e:
-            logger.error(f"Error loading shapefile: {e}", exc_info=True)
-            return None
+            logger.error(f"Error processing shapefile: {e}", exc_info=True)
+            return {"success": False, "error": str(e)}
 
-    def get_state_boundaries(self):
-        """Get simplified state boundaries for web display"""
-        logger.debug("Fetching state boundaries")
-        geojson_data = self.load_states()
-        if geojson_data:
-            return geojson_data
-        logger.error("Failed to get state boundaries")
-        return None
+    def _load_and_standardize_geodataframe(
+        self, file_path: Union[str, Path]
+    ) -> gpd.GeoDataFrame:
+        """
+        Load and standardize a GeoDataFrame from a file
+
+        Args:
+            file_path: Path to the spatial data file
+
+        Returns:
+            Standardized GeoDataFrame
+        """
+        gdf = gpd.read_file(file_path)
+
+        # Handle CRS
+        if gdf.crs is None:
+            logger.warning("No CRS found, assuming WGS84 (EPSG:4326)")
+            gdf.set_crs(epsg=4326, inplace=True)
+        elif gdf.crs != "EPSG:4326":
+            logger.info(f"Converting CRS from {gdf.crs} to EPSG:4326")
+            gdf = gdf.to_crs(epsg=4326)
+
+        # Validate and fix geometries
+        invalid_geometries = gdf[~gdf.geometry.is_valid]
+        if len(invalid_geometries) > 0:
+            logger.warning(
+                f"Found {len(invalid_geometries)} invalid geometries. Attempting to fix..."
+            )
+            gdf.geometry = gdf.geometry.buffer(0)
+
+        return gdf
+
+    def _get_geometry_type(self, gdf: gpd.GeoDataFrame) -> str:
+        """
+        Determine the geometry type of a GeoDataFrame
+
+        Args:
+            gdf: GeoDataFrame to analyze
+
+        Returns:
+            String representing the geometry type
+        """
+        geom_types = gdf.geometry.geom_type.unique()
+        if len(geom_types) == 1:
+            return geom_types[0].upper()
+        return "GEOMETRY"  # Mixed geometry types
+
+    def _process_features(
+        self, gdf: gpd.GeoDataFrame, layer_id: int, db_session: Session
+    ) -> int:
+        """
+        Process features from a GeoDataFrame into the database
+
+        Args:
+            gdf: GeoDataFrame containing features
+            layer_id: ID of the layer in the database
+            db_session: Database session
+
+        Returns:
+            Number of features successfully processed
+        """
+        features_added = 0
+        for idx, row in gdf.iterrows():
+            try:
+                geometry = row.geometry.__geo_interface__
+                properties = row.drop("geometry").to_dict()
+
+                crud.add_feature(
+                    db=db_session,
+                    layer_id=layer_id,
+                    geometry=geometry,
+                    properties=properties,
+                )
+                features_added += 1
+            except Exception as e:
+                logger.error(f"Error adding feature {idx}: {e}")
+                continue
+
+        if features_added == 0:
+            raise ValueError("No features were successfully added to the database")
+
+        return features_added
+
+    def get_layer_as_geojson(
+        self, layer_id: int, db_session: Session
+    ) -> Optional[Dict]:
+        """
+        Retrieve a layer from the database as GeoJSON
+
+        Args:
+            layer_id: ID of the layer to retrieve
+            db_session: Database session
+
+        Returns:
+            GeoJSON representation of the layer
+        """
+        try:
+            features = crud.get_layer_features(db_session, layer_id)
+            if not features:
+                return None
+
+            from app.database.utils import features_to_geojson
+
+            return features_to_geojson(features)
+
+        except Exception as e:
+            logger.error(f"Error retrieving layer {layer_id}: {e}", exc_info=True)
+            return None

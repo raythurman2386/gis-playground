@@ -15,3 +15,8 @@ bp = Blueprint("main", __name__)
 def index():
     logger.debug("Serving index page")
     return render_template("index.html")
+
+
+@bp.route("/upload")
+def upload_form():
+    return render_template("upload.html")
