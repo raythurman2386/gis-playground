@@ -1,11 +1,12 @@
 import geopandas as gpd
-import json
 from pathlib import Path
 from typing import Optional, Dict, Any, Union
 from config.logging_config import CURRENT_LOGGING_CONFIG
 from utils.logger import setup_logger
 from app.database import crud
 from sqlalchemy.orm import Session
+import math
+import pandas as pd
 
 logger = setup_logger(
     "data_processor",
@@ -121,39 +122,36 @@ class GeoDataProcessor:
             return geom_types[0].upper()
         return "GEOMETRY"  # Mixed geometry types
 
-    def _process_features(
-        self, gdf: gpd.GeoDataFrame, layer_id: int, db_session: Session
-    ) -> int:
-        """
-        Process features from a GeoDataFrame into the database
-
-        Args:
-            gdf: GeoDataFrame containing features
-            layer_id: ID of the layer in the database
-            db_session: Database session
-
-        Returns:
-            Number of features successfully processed
-        """
+    def _process_features(self, gdf: gpd.GeoDataFrame, layer_id: int, db_session: Session) -> int:
+        """Process features from a GeoDataFrame into the database"""
         features_added = 0
         for idx, row in gdf.iterrows():
             try:
                 geometry = row.geometry.__geo_interface__
-                properties = row.drop("geometry").to_dict()
+
+                # Clean properties before storing
+                properties = row.drop('geometry').to_dict()
+                cleaned_properties = {}
+
+                for key, value in properties.items():
+                    if pd.isna(value):  # Check for NaN or None
+                        cleaned_properties[key] = None
+                    elif isinstance(value, float) and math.isinf(value):
+                        cleaned_properties[key] = None
+                    else:
+                        cleaned_properties[key] = value
 
                 crud.add_feature(
                     db=db_session,
                     layer_id=layer_id,
                     geometry=geometry,
-                    properties=properties,
+                    properties=cleaned_properties
                 )
                 features_added += 1
+
             except Exception as e:
                 logger.error(f"Error adding feature {idx}: {e}")
                 continue
-
-        if features_added == 0:
-            raise ValueError("No features were successfully added to the database")
 
         return features_added
 

@@ -53,7 +53,6 @@
     margin-bottom: 0.25rem;
 }
 
-/* For Options 1 & 2 */
 .custom-fire-marker {
     cursor: pointer;
 }
@@ -63,37 +62,49 @@
     transition: transform 0.2s;
 }
 
-/* For Option 3 */
-.fire-icon {
-    font-size: 24px;
-    text-align: center;
-    line-height: 24px;
+#sidebar {
+    z-index: 1000;
+    border-right: 1px solid #e2e8f0;
+}
+
+#layersList {
+    max-height: calc(100vh - 8rem);
+    overflow-y: auto;
+}
+
+.layer-item {
+    transition: all 0.2s;
+}
+
+.layer-item:hover {
+    background-color: #f3f4f6;
+}
+
+.layer-controls {
+    transition: all 0.3s ease;
+}
+
+.layer-controls input[type="color"] {
+    -webkit-appearance: none;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    height: 24px;
+}
+
+.layer-controls input[type="range"] {
+    -webkit-appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: #ddd;
+    outline: none;
+}
+
+.layer-controls input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #3b82f6;
     cursor: pointer;
-}
-
-/* For Option 4 */
-.fire-marker {
-    overflow: visible;
-}
-
-.fire-marker-circle {
-    fill: rgba(255, 0, 0, 0.2);
-    stroke: #ffffff;
-    stroke-width: 2;
-}
-
-.fire-marker-inner {
-    fill: #ff0000;
-    stroke: #ffffff;
-    stroke-width: 1;
-}
-
-.custom-fire-icon {
-    cursor: pointer;
-}
-
-.custom-fire-icon:hover .fire-marker {
-    transform: scale(1.2);
-    transform-origin: center;
-    transition: transform 0.2s;
 }

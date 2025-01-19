@@ -38,7 +38,6 @@ def get_db():
 def create_tables():
     """Create all database tables"""
     try:
-        # Import models here to ensure they're registered with Base
         from app.models.spatial import (
             SpatialLayer,
             Feature,

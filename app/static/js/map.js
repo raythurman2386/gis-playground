@@ -138,3 +138,254 @@ L.control.scale({
     metric: true,
     position: 'bottomleft'
 }).addTo(map);
+
+const customLayers = {};
+
+function createLayerControls(layer) {
+    const controlsDiv = document.createElement('div');
+    controlsDiv.className = 'layer-controls hidden p-2 bg-gray-50 rounded mt-1';
+    controlsDiv.id = `controls-${layer.id}`;
+
+    // Style controls
+    const styleControls = `
+        <div class="space-y-2">
+            <div>
+                <label class="text-xs">Fill Color</label>
+                <input type="color" class="w-full"
+                       data-style="fillColor"
+                       value="#3388ff">
+            </div>
+            <div>
+                <label class="text-xs">Border Color</label>
+                <input type="color" class="w-full"
+                       data-style="color"
+                       value="#666666">
+            </div>
+            <div>
+                <label class="text-xs">Fill Opacity</label>
+                <input type="range" class="w-full"
+                       data-style="fillOpacity"
+                       min="0" max="1" step="0.1" value="0.7">
+            </div>
+            <div>
+                <label class="text-xs">Border Width</label>
+                <input type="range" class="w-full"
+                       data-style="weight"
+                       min="1" max="5" step="0.5" value="2">
+            </div>
+        </div>
+        <div class="flex space-x-2 mt-2">
+            <button class="download-btn bg-green-500 text-white px-2 py-1 rounded text-xs">
+                Download
+            </button>
+            <button class="delete-btn bg-red-500 text-white px-2 py-1 rounded text-xs">
+                Delete
+            </button>
+        </div>
+    `;
+
+    controlsDiv.innerHTML = styleControls;
+
+    // Add event listeners for style controls
+    controlsDiv.querySelectorAll('input').forEach(input => {
+        input.addEventListener('change', () => {
+            updateLayerStyle(layer.id);
+        });
+    });
+
+    // Add download handler
+    controlsDiv.querySelector('.download-btn').addEventListener('click', () => {
+        downloadLayer(layer.id, layer.name);
+    });
+
+    // Add delete handler
+    controlsDiv.querySelector('.delete-btn').addEventListener('click', () => {
+        deleteLayer(layer.id);
+    });
+
+    return controlsDiv;
+}
+
+function updateLayerStyle(layerId) {
+    const controls = document.getElementById(`controls-${layerId}`);
+    const styleInputs = controls.querySelectorAll('input[data-style]');
+    const style = {};
+
+    styleInputs.forEach(input => {
+        style[input.dataset.style] = input.type === 'range' ? parseFloat(input.value) : input.value;
+    });
+
+    if (customLayers[layerId]) {
+        customLayers[layerId].setStyle(style);
+    }
+}
+
+function downloadLayer(layerId, layerName) {
+    fetch(`/api/layers/${layerId}`)
+        .then(response => response.json())
+        .then(data => {
+            // Create downloadable file
+            const dataStr = "data:text/json;charset=utf-8," +
+                           encodeURIComponent(JSON.stringify(data));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", `${layerName}.geojson`);
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        });
+}
+
+function deleteLayer(layerId) {
+    if (confirm('Are you sure you want to delete this layer?')) {
+        fetch(`/api/layers/${layerId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                removeLayer(layerId);
+                loadAvailableLayers(); // Refresh layer list
+            }
+        });
+    }
+}
+
+function loadAvailableLayers() {
+    fetch('/api/layers')
+        .then(response => response.json())
+        .then(layers => {
+            const layersList = document.getElementById('layersList');
+            layersList.innerHTML = '';
+
+            layers.forEach(layer => {
+                const layerContainer = document.createElement('div');
+                layerContainer.className = 'layer-item mb-2 border rounded';
+
+                const layerHeader = document.createElement('div');
+                layerHeader.className = 'flex items-center justify-between p-2 cursor-pointer hover:bg-gray-50';
+
+                const leftSection = document.createElement('div');
+                leftSection.className = 'flex items-center space-x-2';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `layer-${layer.id}`;
+                checkbox.className = 'form-checkbox h-4 w-4 text-blue-600';
+
+                const label = document.createElement('label');
+                label.htmlFor = `layer-${layer.id}`;
+                label.className = 'text-sm text-gray-700';
+                label.textContent = layer.name;
+
+                const toggleButton = document.createElement('button');
+                toggleButton.className = 'text-gray-500 hover:text-gray-700';
+                toggleButton.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>';
+
+                leftSection.appendChild(checkbox);
+                leftSection.appendChild(label);
+                layerHeader.appendChild(leftSection);
+                layerHeader.appendChild(toggleButton);
+
+                const controls = createLayerControls(layer);
+
+                layerContainer.appendChild(layerHeader);
+                layerContainer.appendChild(controls);
+
+                //  Add a tooltip to the layer if it has a description
+                if (layer.description) {
+                    label.title = layer.description;
+                }
+
+                // Toggle controls visibility
+                toggleButton.addEventListener('click', () => {
+                    controls.classList.toggle('hidden');
+                    toggleButton.querySelector('svg').style.transform =
+                        controls.classList.contains('hidden') ? '' : 'rotate(180deg)';
+                });
+
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        loadLayer(layer.id, layer.name);
+                    } else {
+                        removeLayer(layer.id);
+                    }
+                });
+
+                layersList.appendChild(layerContainer);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading layers:', error);
+        });
+}
+
+function loadLayer(layerId, layerName) {
+    fetch(`/api/layers/${layerId}`)
+        .then(response => response.json())
+        .then(data => {
+            const controls = document.getElementById(`controls-${layerId}`);
+            const style = {};
+
+            controls.querySelectorAll('input[data-style]').forEach(input => {
+                style[input.dataset.style] = input.type === 'range' ?
+                    parseFloat(input.value) : input.value;
+            });
+
+            const newLayer = L.geoJSON(data, {
+                style: function(feature) {
+                    return {
+                        fillColor: style.fillColor || '#3388ff',
+                        color: style.color || '#666666',
+                        weight: style.weight || 2,
+                        opacity: 1,
+                        fillOpacity: style.fillOpacity || 0.7,
+                        dashArray: '3'
+                    };
+                },
+                onEachFeature: function(feature, layer) {
+                    layer.on({
+                        mouseover: function(e) {
+                            const layer = e.target;
+                            const highlightStyle = {
+                                weight: (style.weight || 2) + 1,
+                                color: '#666',
+                                fillOpacity: (style.fillOpacity || 0.7) + 0.2
+                            };
+                            layer.setStyle(highlightStyle);
+                            layer.bringToFront();
+                        },
+                        mouseout: function(e) {
+                            newLayer.resetStyle(e.target);
+                            clearStatistics();
+                        },
+                        click: function(e) {
+                            map.fitBounds(e.target.getBounds());
+                        }
+                    });
+                }
+            }).addTo(map);
+
+            // Verify layer bounds
+            if (newLayer.getBounds) {
+                console.log('Layer Bounds:', newLayer.getBounds());
+                // Optionally zoom to the layer
+                map.fitBounds(newLayer.getBounds());
+            }
+
+            customLayers[layerId] = newLayer;
+            overlayMaps[layerName] = newLayer;
+        })
+        .catch(error => {
+            console.error('Error loading layer:', error);
+        });
+}
+
+function removeLayer(layerId) {
+    if (customLayers[layerId]) {
+        map.removeLayer(customLayers[layerId]);
+        delete customLayers[layerId];
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadAvailableLayers);

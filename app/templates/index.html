@@ -4,20 +4,14 @@
 <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
     <!-- Sidebar -->
     <div class="lg:col-span-1 bg-white rounded-lg shadow-md p-4">
-        <h2 class="text-lg font-semibold mb-4">Controls</h2>
-
-        <!-- Dataset Selection -->
-        <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-                Select Dataset
-            </label>
-            <select id="dataset-select"
-                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                <option value="population">Population</option>
-                <option value="income">Median Income</option>
-                <option value="education">Education Level</option>
-            </select>
-        </div>
+            <div id="sidebar" class="w-64 bg-white shadow-lg">
+                <div class="p-4">
+                    <h2 class="text-lg font-semibold mb-4">Custom Layers</h2>
+                    <div id="layersList" class="space-y-2">
+                        <!-- Layers will be populated here -->
+                    </div>
+                </div>
+            </div>
 
         <!-- Statistics -->
         <div class="mt-6">
