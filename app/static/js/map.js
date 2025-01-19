@@ -216,7 +216,21 @@ function updateLayerStyle(layerId) {
     });
 
     if (customLayers[layerId]) {
-        customLayers[layerId].setStyle(style);
+        const newStyle = {
+            fillColor: style.fillColor || '#3388ff',
+            color: style.color || '#666666',
+            weight: style.weight || 2,
+            opacity: 1,
+            fillOpacity: style.fillOpacity || 0.7,
+            dashArray: '3'
+        };
+
+        customLayers[layerId].style = newStyle;
+
+        customLayers[layerId].layer.eachLayer(function(layer) {
+            layer.defaultStyle = {...newStyle};
+            layer.setStyle(newStyle);
+        });
     }
 }
 
@@ -332,32 +346,37 @@ function loadLayer(layerId, layerName) {
                     parseFloat(input.value) : input.value;
             });
 
+            const baseStyle = {
+                fillColor: style.fillColor || '#3388ff',
+                color: style.color || '#666666',
+                weight: style.weight || 2,
+                opacity: 1,
+                fillOpacity: style.fillOpacity || 0.7,
+                dashArray: '3'
+            };
+
             const newLayer = L.geoJSON(data, {
                 style: function(feature) {
-                    return {
-                        fillColor: style.fillColor || '#3388ff',
-                        color: style.color || '#666666',
-                        weight: style.weight || 2,
-                        opacity: 1,
-                        fillOpacity: style.fillOpacity || 0.7,
-                        dashArray: '3'
-                    };
+                    return {...baseStyle};
                 },
                 onEachFeature: function(feature, layer) {
+                    layer.defaultStyle = {...baseStyle};
+
                     layer.on({
                         mouseover: function(e) {
                             const layer = e.target;
                             const highlightStyle = {
-                                weight: (style.weight || 2) + 1,
-                                color: '#666',
-                                fillOpacity: (style.fillOpacity || 0.7) + 0.2
+                                ...layer.defaultStyle,
+                                weight: layer.defaultStyle.weight + 1,
+                                fillOpacity: Math.min(layer.defaultStyle.fillOpacity + 0.2, 1)
                             };
                             layer.setStyle(highlightStyle);
                             layer.bringToFront();
                             updateCustomLayerStatistics(feature.properties);
                         },
                         mouseout: function(e) {
-                            newLayer.resetStyle(e.target);
+                            const layer = e.target;
+                            layer.setStyle(layer.defaultStyle);
                             clearStatistics();
                         },
                         click: function(e) {
@@ -368,14 +387,10 @@ function loadLayer(layerId, layerName) {
                 }
             }).addTo(map);
 
-            // Verify layer bounds
-            if (newLayer.getBounds) {
-                console.log('Layer Bounds:', newLayer.getBounds());
-                // Optionally zoom to the layer
-                map.fitBounds(newLayer.getBounds());
-            }
-
-            customLayers[layerId] = newLayer;
+            customLayers[layerId] = {
+                layer: newLayer,
+                style: baseStyle
+            };
             overlayMaps[layerName] = newLayer;
         })
         .catch(error => {
@@ -385,7 +400,7 @@ function loadLayer(layerId, layerName) {
 
 function removeLayer(layerId) {
     if (customLayers[layerId]) {
-        map.removeLayer(customLayers[layerId]);
+        map.removeLayer(customLayers[layerId].layer);
         delete customLayers[layerId];
     }
 }

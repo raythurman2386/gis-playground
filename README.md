@@ -47,15 +47,23 @@ pip install -r requirements.txt
 
 ## Project Structure
 
-- `app.py`: Main Flask application
-- `src/`: Source code directory
-    - `api/`: Census API interaction
-    - `data/`: Data processing and management
-    - `visualization/`: Map generation and visualization
-- `static/`: Static files (CSS, JavaScript, images)
-- `templates/`: HTML templates
-- `data/`: Raw and processed data storage
+- `app/`: Source code directory
+    - `database/`: Data processing and management
+    - `models/`: Census API interaction
+    - `routes/`: Census API interaction
+    - `static/`: Map generation and visualization
+    - `templates/`: HTML templates
+    - __init__.py: Package initialization
 - `config/`: Configuration files
+- `data/`: Raw and processed data storage
+- `logs/`: Log files
+- `processors/`: Data processing scripts
+- `tools/`: Geoprocessing tools
+- `utils/`: Utility functions
+- `requirements.txt`: List of dependencies
+- `README.md`: Project documentation
+- `manage.py`: Database management commands
+- `run.py`: Main Flask application
 
 ## Usage
 
