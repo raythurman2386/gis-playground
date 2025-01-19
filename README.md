@@ -2,7 +2,7 @@
 
 GIS Playground is an interactive web mapping application that combines real-time wildfire data from ESRI's feature services with state boundary visualization, allowing users to explore active fire incidents and their perimeters while toggling between various base maps. The project demonstrates modern web GIS capabilities, featuring dynamic data visualization, interactive statistics panels, and will expand to include custom shapefile uploads and Census data integration.
 
-![GIS Playground](static/images/gis_playground.png)
+![GIS Playground](app/static/images/gis_playground.png)
 
 ## Features
 
@@ -61,7 +61,7 @@ pip install -r requirements.txt
 
 1. Start the Flask development server:
 ```bash
-python app.py
+python run.py
 ```
 
 2. Open your web browser and navigate to `http://localhost:5000`
