@@ -354,6 +354,7 @@ function loadLayer(layerId, layerName) {
                             };
                             layer.setStyle(highlightStyle);
                             layer.bringToFront();
+                            updateCustomLayerStatistics(feature.properties);
                         },
                         mouseout: function(e) {
                             newLayer.resetStyle(e.target);
@@ -361,6 +362,7 @@ function loadLayer(layerId, layerName) {
                         },
                         click: function(e) {
                             map.fitBounds(e.target.getBounds());
+                            updateCustomLayerStatistics(feature.properties);
                         }
                     });
                 }
@@ -386,6 +388,18 @@ function removeLayer(layerId) {
         map.removeLayer(customLayers[layerId]);
         delete customLayers[layerId];
     }
+}
+
+function updateCustomLayerStatistics(properties) {
+    const statsDiv = document.getElementById('statistics');
+    let html = '<div class="space-y-2"><p class="font-semibold">Feature Properties</p>';
+
+    for (const [key, value] of Object.entries(properties)) {
+        html += `<p><strong>${key}:</strong> ${value || 'N/A'}</p>`;
+    }
+
+    html += '</div>';
+    statsDiv.innerHTML = html;
 }
 
 document.addEventListener('DOMContentLoaded', loadAvailableLayers);
