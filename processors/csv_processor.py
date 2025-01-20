@@ -33,6 +33,7 @@ class CSVProcessor(BaseDataProcessor):
         layer_name: str,
         db_session: Session,
         description: str = "",
+        selected_layer: str = None,
         lat_column: str = None,
         lon_column: str = None,
     ) -> Dict[str, Any]:

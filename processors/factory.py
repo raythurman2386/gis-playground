@@ -4,6 +4,7 @@ from processors.base_processor import BaseDataProcessor
 from processors.shapefile_processor import ShapefileProcessor
 from processors.csv_processor import CSVProcessor
 from processors.geojson_processor import GeoJSONProcessor
+from processors.geopackage_processor import GeoPackageProcessor
 
 
 class DataProcessorFactory:
@@ -11,6 +12,7 @@ class DataProcessorFactory:
         "shapefile": ShapefileProcessor,
         "csv": CSVProcessor,
         "geojson": GeoJSONProcessor,
+        "geopackage": GeoPackageProcessor,
     }
 
     @classmethod

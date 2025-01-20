@@ -37,6 +37,7 @@ class ShapefileProcessor(BaseDataProcessor):
         layer_name: str,
         db_session: Session,
         description: str = "",
+        selected_layer: str = None
     ) -> Dict[str, Any]:
         try:
             # Create temporary directory for files

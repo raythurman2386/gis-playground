@@ -21,6 +21,7 @@ class BaseDataProcessor(ABC):
         layer_name: str,
         db_session: Session,
         description: str = "",
+        selected_layer: str = None
     ) -> Dict[str, Any]:
         """Process the data and store it in the database"""
         pass
