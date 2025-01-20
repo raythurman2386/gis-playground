@@ -49,6 +49,7 @@ def get_layer_data(layer_id):
 
         try:
             from app.database.utils import features_to_geojson
+
             geojson = features_to_geojson(features)
             return jsonify(geojson)
         except Exception as e:

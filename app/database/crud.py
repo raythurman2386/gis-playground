@@ -19,7 +19,9 @@ def create_spatial_layer(
     return db_layer
 
 
-def add_feature(db: Session, layer_id: int, geometry: dict, properties: dict) -> Feature:
+def add_feature(
+    db: Session, layer_id: int, geometry: dict, properties: dict
+) -> Feature:
     """Add a new feature to a layer"""
     try:
         # Convert GeoJSON geometry to WKB
@@ -30,9 +32,7 @@ def add_feature(db: Session, layer_id: int, geometry: dict, properties: dict) ->
         cleaned_properties = json.dumps(properties, default=lambda x: None)
 
         db_feature = Feature(
-            layer_id=layer_id,
-            geometry=geom,
-            properties=cleaned_properties
+            layer_id=layer_id, geometry=geom, properties=cleaned_properties
         )
         db.add(db_feature)
         db.commit()

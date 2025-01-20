@@ -1,27 +1,77 @@
 import geopandas as gpd
-from pathlib import Path
-from typing import Optional, Dict, Any, Union
-from config.logging_config import CURRENT_LOGGING_CONFIG
-from utils.logger import setup_logger
-from app.database import crud
+from typing import Dict, Any, Union, Optional
 from sqlalchemy.orm import Session
+from pathlib import Path
 import math
 import pandas as pd
+from app.database import crud
+from processors.base_processor import BaseDataProcessor
+from utils.logger import setup_logger
+from config.logging_config import CURRENT_LOGGING_CONFIG
 
 logger = setup_logger(
-    "data_processor",
+    "shapefile_processor",
     log_level=CURRENT_LOGGING_CONFIG["log_level"],
     log_dir=CURRENT_LOGGING_CONFIG["log_dir"],
 )
 
 
-class GeoDataProcessor:
-    def __init__(self, upload_dir: str = "data/uploads"):
-        self.upload_dir = Path(upload_dir)
-        self.upload_dir.mkdir(parents=True, exist_ok=True)
-        logger.info(
-            f"Initialized GeoDataProcessor with upload directory: {self.upload_dir}"
-        )
+class ShapefileProcessor(BaseDataProcessor):
+    def get_required_files(self) -> Dict[str, str]:
+        return {
+            "shp": "Main shapefile",
+            "shx": "Shape index file",
+            "dbf": "Attribute database file",
+        }
+
+    def get_file_extensions(self) -> set:
+        return {".shp", ".shx", ".dbf"}
+
+    def validate_files(self, files: Dict[str, Any]) -> bool:
+        required_extensions = self.get_file_extensions()
+        return all(f"file_{ext[1:]}" in files for ext in required_extensions)
+
+    def process_data(
+        self,
+        files: Dict[str, Any],
+        layer_name: str,
+        db_session: Session,
+        description: str = "",
+    ) -> Dict[str, Any]:
+        try:
+            # Create temporary directory for files
+            temp_dir = self.upload_dir / layer_name
+            temp_dir.mkdir(exist_ok=True)
+            saved_paths = []
+
+            try:
+                # Save files
+                for ext in self.get_file_extensions():
+                    file = files[f"file_{ext[1:]}"]
+                    filepath = temp_dir / f"{layer_name}{ext}"
+                    file.save(filepath)
+                    saved_paths.append(filepath)
+
+                # Process shapefile
+                shp_path = temp_dir / f"{layer_name}.shp"
+                return self.process_shapefile(
+                    shp_path=shp_path,
+                    layer_name=layer_name,
+                    db_session=db_session,
+                    description=description,
+                )
+
+            finally:
+                # Clean up
+                for path in saved_paths:
+                    if path.exists():
+                        path.unlink()
+                if temp_dir.exists():
+                    temp_dir.rmdir()
+
+        except Exception as e:
+            logger.error(f"Error processing shapefile: {e}", exc_info=True)
+            return {"success": False, "error": str(e)}
 
     def process_shapefile(
         self,
@@ -32,15 +82,6 @@ class GeoDataProcessor:
     ) -> Dict[str, Any]:
         """
         Process a shapefile and store it in the database
-
-        Args:
-            shp_path: Path to the shapefile
-            layer_name: Name for the layer in the database
-            db_session: Database session
-            description: Optional description of the layer
-
-        Returns:
-            Dict containing processing results
         """
         try:
             # Read the shapefile
@@ -122,7 +163,9 @@ class GeoDataProcessor:
             return geom_types[0].upper()
         return "GEOMETRY"  # Mixed geometry types
 
-    def _process_features(self, gdf: gpd.GeoDataFrame, layer_id: int, db_session: Session) -> int:
+    def _process_features(
+        self, gdf: gpd.GeoDataFrame, layer_id: int, db_session: Session
+    ) -> int:
         """Process features from a GeoDataFrame into the database"""
         features_added = 0
         for idx, row in gdf.iterrows():
@@ -130,7 +173,7 @@ class GeoDataProcessor:
                 geometry = row.geometry.__geo_interface__
 
                 # Clean properties before storing
-                properties = row.drop('geometry').to_dict()
+                properties = row.drop("geometry").to_dict()
                 cleaned_properties = {}
 
                 for key, value in properties.items():
@@ -145,7 +188,7 @@ class GeoDataProcessor:
                     db=db_session,
                     layer_id=layer_id,
                     geometry=geometry,
-                    properties=cleaned_properties
+                    properties=cleaned_properties,
                 )
                 features_added += 1
 
