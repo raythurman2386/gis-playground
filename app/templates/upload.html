@@ -31,6 +31,7 @@
                            focus:border-blue-500 focus:ring-blue-500 transition-colors">
                 <option value="shapefile">Shapefile</option>
                 <option value="csv">CSV</option>
+                <option value="geojson">GeoJSON</option>
             </select>
         </div>
 
@@ -140,6 +141,25 @@
             </div>
         </div>
 
+        <!--   GeoJSON Fields     -->
+        <div id="geojsonFields" class="hidden space-y-4">
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h3 class="text-sm font-medium text-gray-700 mb-4">GeoJSON File Upload</h3>
+
+                <div class="relative">
+                    <label class="block text-sm font-medium text-gray-700">GeoJSON File</label>
+                    <input type="file" name="file_geojson" accept=".geojson,.json"
+                           class="mt-1 block w-full text-sm text-gray-500
+                          file:mr-4 file:py-2 file:px-4
+                          file:rounded-md file:border-0
+                          file:text-sm file:font-semibold
+                          file:bg-blue-50 file:text-blue-700
+                          hover:file:bg-blue-100
+                          transition-colors">
+                </div>
+            </div>
+        </div>
+
         <!-- Submit Button -->
         <div class="pt-4">
             <button type="submit" id="submitButton"
@@ -165,25 +185,48 @@
         const fileType = document.getElementById('fileType');
         const shapefileFields = document.getElementById('shapefileFields');
         const csvFields = document.getElementById('csvFields');
+        const geojsonFields = document.getElementById('geojsonFields');
         const submitButton = document.getElementById('submitButton');
         const progressDiv = document.getElementById('uploadProgress');
 
         function updateFormFields() {
             const selectedType = fileType.value;
-            form.action = selectedType === 'shapefile'
-                ? "{{ url_for('upload.upload_shapefile') }}"
-                : "{{ url_for('upload.upload_csv') }}";
 
-            if (selectedType === 'shapefile') {
-                shapefileFields.classList.remove('hidden');
-                csvFields.classList.add('hidden');
-                document.querySelectorAll('#shapefileFields input').forEach(input => input.required = true);
-                document.querySelectorAll('#csvFields input[type="file"]').forEach(input => input.required = false);
-            } else {
-                shapefileFields.classList.add('hidden');
-                csvFields.classList.remove('hidden');
-                document.querySelectorAll('#shapefileFields input').forEach(input => input.required = false);
-                document.querySelectorAll('#csvFields input[type="file"]').forEach(input => input.required = true);
+            // Update form action with the correct endpoint
+            switch(selectedType) {
+                case 'shapefile':
+                    form.action = "{{ url_for('upload.upload_shapefile') }}";
+                    break;
+                case 'csv':
+                    form.action = "{{ url_for('upload.upload_csv') }}";
+                    break;
+                case 'geojson':
+                    form.action = "{{ url_for('upload.upload_geojson') }}";
+                    break;
+            }
+
+            // Hide all fields first
+            shapefileFields.classList.add('hidden');
+            csvFields.classList.add('hidden');
+            geojsonFields.classList.add('hidden');
+
+            // Show selected fields and handle required attributes
+            document.querySelectorAll('#shapefileFields input, #csvFields input[type="file"], #geojsonFields input[type="file"]')
+                .forEach(input => input.required = false);
+
+            switch(selectedType) {
+                case 'shapefile':
+                    shapefileFields.classList.remove('hidden');
+                    document.querySelectorAll('#shapefileFields input').forEach(input => input.required = true);
+                    break;
+                case 'csv':
+                    csvFields.classList.remove('hidden');
+                    document.querySelectorAll('#csvFields input[type="file"]').forEach(input => input.required = true);
+                    break;
+                case 'geojson':
+                    geojsonFields.classList.remove('hidden');
+                    document.querySelectorAll('#geojsonFields input[type="file"]').forEach(input => input.required = true);
+                    break;
             }
         }
 

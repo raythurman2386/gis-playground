@@ -96,3 +96,41 @@ def upload_csv():
     except Exception as e:
         logger.error(f"Error in CSV upload process: {e}", exc_info=True)
         return render_template("upload_error.html", error_message=str(e))
+
+
+@bp.route("/geojson", methods=["POST"])
+def upload_geojson():
+    """Upload and process GeoJSON file"""
+    try:
+        # Validate request
+        layer_name = request.form.get("layer_name")
+        if not layer_name:
+            return render_template(
+                "upload_error.html", error_message="Layer name is required"
+            )
+
+        # Get the GeoJSON processor
+        processor = DataProcessorFactory.get_processor("geojson")
+
+        # Validate files
+        if not processor.validate_files(request.files):
+            return render_template(
+                "upload_error.html", error_message="Missing GeoJSON file"
+            )
+
+        # Process the file
+        result = processor.process_data(
+            files=request.files,
+            layer_name=layer_name,
+            db_session=next(get_db()),
+            description=request.form.get("description", ""),
+        )
+
+        if result["success"]:
+            result["layer_name"] = layer_name
+            return render_template("upload_success.html", result=result)
+        return render_template("upload_error.html", error_message=result["error"])
+
+    except Exception as e:
+        logger.error(f"Error in GeoJSON upload process: {e}", exc_info=True)
+        return render_template("upload_error.html", error_message=str(e))

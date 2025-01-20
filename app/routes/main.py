@@ -1,4 +1,6 @@
 from flask import Blueprint, render_template
+
+from processors.factory import DataProcessorFactory
 from utils.logger import setup_logger
 from config.logging_config import CURRENT_LOGGING_CONFIG
 
@@ -17,6 +19,8 @@ def index():
     return render_template("index.html")
 
 
-@bp.route("/upload")
+@bp.route("/upload", methods=["GET"])
 def upload_form():
-    return render_template("upload.html")
+    """Render the upload form"""
+    supported_types = DataProcessorFactory.get_supported_types()
+    return render_template("upload.html", supported_types=supported_types)
