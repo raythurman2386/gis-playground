@@ -38,11 +38,18 @@
 
         <!-- Layer Name -->
         <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">Layer Name</label>
-            <input type="text" name="layer_name" required
+            <div class="flex justify-between items-center">
+                <label class="block text-sm font-medium text-gray-700">Layer Name</label>
+                <div class="flex items-center">
+                    <input type="checkbox" id="useAiName" name="use_ai_name"
+                           class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <label for="useAiName" class="ml-2 text-sm text-gray-600">Use AI generated name</label>
+                </div>
+            </div>
+            <input type="text" name="layer_name" id="layerNameInput"
                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm
-                          focus:border-blue-500 focus:ring-blue-500 transition-colors
-                          placeholder-gray-400"
+                  focus:border-blue-500 focus:ring-blue-500 transition-colors
+                  placeholder-gray-400"
                    placeholder="Enter a name for this layer">
         </div>
 
@@ -170,19 +177,26 @@
                     <label class="block text-sm font-medium text-gray-700">GeoPackage File</label>
                     <input type="file" name="file_gpkg" accept=".gpkg"
                            class="mt-1 block w-full text-sm text-gray-500
-                          file:mr-4 file:py-2 file:px-4
-                          file:rounded-md file:border-0
-                          file:text-sm file:font-semibold
-                          file:bg-blue-50 file:text-blue-700
-                          hover:file:bg-blue-100
-                          transition-colors">
+                      file:mr-4 file:py-2 file:px-4
+                      file:rounded-md file:border-0
+                      file:text-sm file:font-semibold
+                      file:bg-blue-50 file:text-blue-700
+                      hover:file:bg-blue-100
+                      transition-colors">
                 </div>
 
-                <div id="layerSelector" class="hidden mt-4">
-                    <label class="block text-sm font-medium text-gray-700">Select Layer</label>
-                    <select name="selected_layer"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                    </select>
+                <div class="mt-4">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="processAllLayers" name="process_all_layers"
+                               class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                               checked>
+                        <label for="processAllLayers" class="ml-2 text-sm text-gray-600">
+                            Process all layers automatically
+                        </label>
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500">
+                        Each layer will be processed with an AI-generated name and description
+                    </p>
                 </div>
             </div>
         </div>
@@ -207,6 +221,19 @@
 
 {% block scripts %}
 <script>
+    const useAiName = document.getElementById('useAiName');
+    const layerNameInput = document.getElementById('layerNameInput');
+
+    useAiName.addEventListener('change', function() {
+        layerNameInput.required = !this.checked;
+        layerNameInput.disabled = this.checked;
+        if (this.checked) {
+            layerNameInput.value = '';
+            layerNameInput.placeholder = 'Name will be generated automatically';
+        } else {
+            layerNameInput.placeholder = 'Enter a name for this layer';
+        }
+    });
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('uploadForm');
         const fileType = document.getElementById('fileType');
@@ -270,39 +297,6 @@
             submitButton.disabled = disable;
             submitButton.classList.toggle('opacity-50', disable);
             submitButton.classList.toggle('cursor-not-allowed', disable);
-        }
-
-        // Handle GeoPackage file selection to check for available layers
-        const gpkgFileInput = document.querySelector('input[name="file_gpkg"]');
-        if (gpkgFileInput) {
-            gpkgFileInput.addEventListener('change', async function(e) {
-                if (this.files.length > 0) {
-                    const formData = new FormData();
-                    formData.append('file_gpkg', this.files[0]);
-
-                    try {
-                        const response = await fetch("{{ url_for('upload.get_gpkg_layers') }}", {
-                            method: 'POST',
-                            body: formData
-                        });
-
-                        const data = await response.json();
-
-                        if (data.layers && data.layers.length > 0) {
-                            // Populate layer selector
-                            const select = document.querySelector('select[name="selected_layer"]');
-                            select.innerHTML = data.layers.map(layer =>
-                                `<option value="${layer}">${layer}</option>`
-                            ).join('');
-
-                            // Show layer selector
-                            layerSelector.classList.remove('hidden');
-                        }
-                    } catch (error) {
-                        console.error('Error fetching layers:', error);
-                    }
-                }
-            });
         }
 
         fileType.addEventListener('change', updateFormFields);

@@ -1,0 +1,51 @@
+{% macro render_ai_analysis(analysis) %}
+{% if analysis.data_quality %}
+<div class="space-y-4">
+  {% for column, stats in analysis.data_quality.items() %}
+  <div class="bg-gray-50 rounded-lg p-4">
+    <h3 class="font-medium text-gray-700 mb-2">{{ column }}</h3>
+    <dl class="grid grid-cols-2 gap-2 text-sm">
+      {% if stats is mapping %}
+      {% if stats.completeness is defined %}
+      <dt class="text-gray-500">Completeness:</dt>
+      <dd class="text-gray-900">{{ "%.1f"|format(stats.completeness) }}%</dd>
+      {% endif %}
+
+      {% if stats.unique_values is defined %}
+      <dt class="text-gray-500">Unique Values:</dt>
+      <dd class="text-gray-900">{{ stats.unique_values }}</dd>
+      {% endif %}
+
+      {% if stats.data_type is defined %}
+      <dt class="text-gray-500">Data Type:</dt>
+      <dd class="text-gray-900">{{ stats.data_type }}</dd>
+      {% endif %}
+
+      {% if stats.mean is defined and stats.mean is not none %}
+      <dt class="text-gray-500">Mean:</dt>
+      <dd class="text-gray-900">{{ "%.2f"|format(stats.mean) }}</dd>
+      {% endif %}
+
+      {% if stats.common_terms is defined and stats.common_terms %}
+      <dt class="text-gray-500">Common Terms:</dt>
+      <dd class="text-gray-900">{{ stats.common_terms|join(", ") }}</dd>
+      {% endif %}
+      {% else %}
+      <dd class="text-gray-900 col-span-2">{{ stats }}</dd>
+      {% endif %}
+    </dl>
+  </div>
+  {% endfor %}
+
+  {% if analysis.clusters %}
+  <div class="mt-4 bg-blue-50 rounded-lg p-4">
+    <h3 class="font-medium text-blue-700 mb-2">Clustering Analysis</h3>
+    <p class="text-sm text-blue-600">
+      Data was naturally grouped into {{ analysis.clusters.n_clusters }} clusters
+      based on {{ analysis.clusters.features_used|join(", ") }}.
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+{% endmacro %}

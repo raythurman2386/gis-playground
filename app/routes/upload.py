@@ -24,11 +24,15 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def upload_shapefile():
     """Upload and process shapefile components"""
     try:
-        # Validate request
+        # Check if AI name generation is requested
+        use_ai_name = request.form.get("use_ai_name") == "on"
         layer_name = request.form.get("layer_name")
-        if not layer_name:
+
+        # Only validate layer name if AI name generation is not requested
+        if not use_ai_name and not layer_name:
             return render_template(
-                "upload_error.html", error_message="Layer name is required"
+                "upload_error.html",
+                error_message="Layer name is required when not using AI generation",
             )
 
         # Get the shapefile processor
@@ -43,13 +47,12 @@ def upload_shapefile():
         # Process the files
         result = processor.process_data(
             files=request.files,
-            layer_name=layer_name,
+            layer_name=layer_name if not use_ai_name else None,
             db_session=next(get_db()),
             description=request.form.get("description", ""),
         )
 
         if result["success"]:
-            result["layer_name"] = layer_name
             return render_template("upload_success.html", result=result)
         return render_template("upload_error.html", error_message=result["error"])
 
@@ -62,26 +65,24 @@ def upload_shapefile():
 def upload_csv():
     """Upload and process CSV file"""
     try:
-        # Validate request
+        use_ai_name = request.form.get("use_ai_name") == "on"
         layer_name = request.form.get("layer_name")
-        if not layer_name:
+
+        if not use_ai_name and not layer_name:
             return render_template(
-                "upload_error.html", error_message="Layer name is required"
+                "upload_error.html",
+                error_message="Layer name is required when not using AI generation",
             )
 
-        # Get the CSV processor
         processor = DataProcessorFactory.get_processor("csv")
-
-        # Validate files
         if not processor.validate_files(request.files):
             return render_template(
                 "upload_error.html", error_message="Missing CSV file"
             )
 
-        # Process the file
         result = processor.process_data(
             files=request.files,
-            layer_name=layer_name,
+            layer_name=layer_name if not use_ai_name else None,
             db_session=next(get_db()),
             description=request.form.get("description", ""),
             lat_column=request.form.get("lat_column"),
@@ -89,7 +90,6 @@ def upload_csv():
         )
 
         if result["success"]:
-            result["layer_name"] = layer_name
             return render_template("upload_success.html", result=result)
         return render_template("upload_error.html", error_message=result["error"])
 
@@ -102,32 +102,29 @@ def upload_csv():
 def upload_geojson():
     """Upload and process GeoJSON file"""
     try:
-        # Validate request
+        use_ai_name = request.form.get("use_ai_name") == "on"
         layer_name = request.form.get("layer_name")
-        if not layer_name:
+
+        if not use_ai_name and not layer_name:
             return render_template(
-                "upload_error.html", error_message="Layer name is required"
+                "upload_error.html",
+                error_message="Layer name is required when not using AI generation",
             )
 
-        # Get the GeoJSON processor
         processor = DataProcessorFactory.get_processor("geojson")
-
-        # Validate files
         if not processor.validate_files(request.files):
             return render_template(
                 "upload_error.html", error_message="Missing GeoJSON file"
             )
 
-        # Process the file
         result = processor.process_data(
             files=request.files,
-            layer_name=layer_name,
+            layer_name=layer_name if not use_ai_name else None,
             db_session=next(get_db()),
             description=request.form.get("description", ""),
         )
 
         if result["success"]:
-            result["layer_name"] = layer_name
             return render_template("upload_success.html", result=result)
         return render_template("upload_error.html", error_message=result["error"])
 
@@ -140,40 +137,45 @@ def upload_geojson():
 def upload_geopackage():
     """Upload and process GeoPackage file"""
     try:
-        # Validate request
+        use_ai_name = request.form.get("use_ai_name") == "on"
+        process_all_layers = request.form.get("process_all_layers") == "on"
         layer_name = request.form.get("layer_name")
-        if not layer_name:
+
+        # Only validate layer name if AI name generation is not requested and not processing all layers
+        if not use_ai_name and not process_all_layers and not layer_name:
             return render_template(
-                "upload_error.html", error_message="Layer name is required"
+                "upload_error.html",
+                error_message="Layer name is required when not using AI generation or processing all layers",
             )
 
-        # Get the GeoPackage processor
         processor = DataProcessorFactory.get_processor("geopackage")
-
-        # Validate files
         if not processor.validate_files(request.files):
             return render_template(
                 "upload_error.html", error_message="Missing GeoPackage file"
             )
 
-        # Get selected layer if provided
-        selected_layer = request.form.get("selected_layer")
+        # Get selected layer if not processing all layers
+        selected_layer = (
+            None if process_all_layers else request.form.get("selected_layer")
+        )
 
-        # Process the file
         result = processor.process_data(
             files=request.files,
-            layer_name=layer_name,
+            layer_name=layer_name if not use_ai_name else None,
             db_session=next(get_db()),
             description=request.form.get("description", ""),
             selected_layer=selected_layer,
         )
 
         if result["success"]:
-            result["layer_name"] = layer_name
             return render_template("upload_success.html", result=result)
 
-        # If multiple layers were found and none selected, show layer selection
-        if not result["success"] and "available_layers" in result:
+        # If multiple layers were found and none selected (only when not processing all)
+        if (
+            not result["success"]
+            and "available_layers" in result
+            and not process_all_layers
+        ):
             return render_template(
                 "upload_error.html",
                 error_message="Please select a layer from the GeoPackage",
@@ -185,34 +187,3 @@ def upload_geopackage():
     except Exception as e:
         logger.error(f"Error in GeoPackage upload process: {e}", exc_info=True)
         return render_template("upload_error.html", error_message=str(e))
-
-
-@bp.route("/get_gpkg_layers", methods=["POST"])
-def get_gpkg_layers():
-    """Get available layers from a GeoPackage file"""
-    try:
-        if "file_gpkg" not in request.files:
-            return jsonify({"error": "No file provided"}), 400
-
-        file = request.files["file_gpkg"]
-        if file.filename == "":
-            return jsonify({"error": "No file selected"}), 400
-
-        # Save file temporarily
-        temp_dir = Path("data/temp")
-        temp_dir.mkdir(parents=True, exist_ok=True)
-        temp_path = temp_dir / "temp.gpkg"
-
-        try:
-            file.save(temp_path)
-            layers = fiona.listlayers(str(temp_path))
-            return jsonify({"layers": layers})
-        finally:
-            if temp_path.exists():
-                temp_path.unlink()
-            if temp_dir.exists() and not os.listdir(temp_dir):
-                temp_dir.rmdir()
-
-    except Exception as e:
-        logger.error(f"Error getting GeoPackage layers: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500

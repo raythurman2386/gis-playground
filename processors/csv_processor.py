@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from pathlib import Path
 from app.database import crud
 from processors.base_processor import BaseDataProcessor
+from tools.ai.smart_processor import SmartProcessor
 from utils.logger import setup_logger
 from config.logging_config import CURRENT_LOGGING_CONFIG
 
@@ -16,6 +17,10 @@ logger = setup_logger(
 
 
 class CSVProcessor(BaseDataProcessor):
+    def __init__(self, upload_dir: str = "data/uploads"):
+        super().__init__(upload_dir)
+        self.smart_processor = SmartProcessor()
+
     def get_required_files(self) -> Dict[str, str]:
         return {
             "csv": "CSV file with spatial data (must include latitude and longitude columns)"
@@ -61,6 +66,16 @@ class CSVProcessor(BaseDataProcessor):
                 geometry = gpd.points_from_xy(df[lon_col], df[lat_col])
                 gdf = gpd.GeoDataFrame(df, crs="EPSG:4326", geometry=geometry)
 
+                # AI Analysis
+                ai_analysis = self.smart_processor.analyze_dataset(gdf, layer_name)
+
+                # Use AI-suggested name and description if not provided
+                if not layer_name and ai_analysis.get("suggested_name"):
+                    layer_name = ai_analysis["suggested_name"]
+
+                if not description and ai_analysis.get("suggested_description"):
+                    description = ai_analysis["suggested_description"]
+
                 # Create the layer
                 layer = crud.create_spatial_layer(
                     db=db_session,
@@ -72,6 +87,13 @@ class CSVProcessor(BaseDataProcessor):
                 # Process features
                 features_added = self._process_features(gdf, layer.id, db_session)
 
+                logger.info(f"AI Analysis for {layer_name}:")
+                logger.info(f"Suggested Name: {ai_analysis.get('suggested_name')}")
+                logger.info(
+                    f"Suggested Description: {ai_analysis.get('suggested_description')}"
+                )
+                logger.info(f"Data Quality Report: {ai_analysis.get('data_quality')}")
+
                 return {
                     "success": True,
                     "message": "CSV data processed successfully",
@@ -80,6 +102,10 @@ class CSVProcessor(BaseDataProcessor):
                     "total_features": len(gdf),
                     "geometry_type": "POINT",
                     "crs": "EPSG:4326",
+                    "ai_analysis": {
+                        "data_quality": ai_analysis.get("data_quality"),
+                        "clusters": ai_analysis.get("clusters"),
+                    },
                 }
 
             finally:

@@ -1,8 +1,10 @@
 {% extends "base.html" %}
+{% from "components/ai_analysis.html" import render_ai_analysis %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <div class="bg-white shadow-lg rounded-lg p-6 max-w-2xl mx-auto">
+        <!-- Success Header -->
         <div class="flex items-center mb-6">
             <div class="bg-green-100 rounded-full p-3 mr-4">
                 <svg class="h-6 w-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -12,7 +14,68 @@
             <h1 class="text-2xl font-bold text-gray-900">Upload Successful</h1>
         </div>
 
-        <div class="space-y-4">
+        <!-- Multiple Layers Result -->
+        {% if result.processed_layers %}
+        <div class="space-y-6">
+            <!-- Summary -->
+            <div class="bg-gray-50 rounded-lg p-4">
+                <h2 class="text-lg font-semibold text-gray-700 mb-2">GeoPackage Summary</h2>
+                <p class="text-sm text-gray-600">
+                    Successfully processed {{ result.successful_layers }} out of {{ result.total_layers }} layers
+                </p>
+            </div>
+
+            <!-- Individual Layer Results -->
+            {% for layer in result.processed_layers %}
+            <div class="border rounded-lg p-4 {% if layer.success %}bg-white{% else %}bg-red-50{% endif %}">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium">Source Layer: {{ layer.source_layer }}</h3>
+                    <span class="px-2 py-1 rounded-full text-sm
+                               {% if layer.success %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                        {% if layer.success %}Success{% else %}Failed{% endif %}
+                    </span>
+                </div>
+
+                {% if layer.success %}
+                <!-- Layer Details -->
+                <dl class="grid grid-cols-2 gap-4 mb-4">
+                    <dt class="text-sm font-medium text-gray-500">Processed Name:</dt>
+                    <dd class="text-sm text-gray-900">{{ layer.layer_name }}</dd>
+
+                    <dt class="text-sm font-medium text-gray-500">Feature Count:</dt>
+                    <dd class="text-sm text-gray-900">{{ layer.feature_count }} / {{ layer.total_features }}</dd>
+
+                    <dt class="text-sm font-medium text-gray-500">Geometry Type:</dt>
+                    <dd class="text-sm text-gray-900">{{ layer.geometry_type }}</dd>
+
+                    <dt class="text-sm font-medium text-gray-500">CRS:</dt>
+                    <dd class="text-sm text-gray-900">{{ layer.crs }}</dd>
+
+                    {% if layer.description %}
+                    <dt class="text-sm font-medium text-gray-500">Description:</dt>
+                    <dd class="text-sm text-gray-900 col-span-2">{{ layer.description }}</dd>
+                    {% endif %}
+                </dl>
+
+                <!-- AI Analysis -->
+                {% if layer.ai_analysis %}
+                <div class="mt-4 border-t pt-4">
+                    <h4 class="text-md font-medium text-gray-700 mb-2">Analysis Results</h4>
+                    {{ render_ai_analysis(layer.ai_analysis) }}
+                </div>
+                {% endif %}
+
+                {% else %}
+                <p class="text-red-600 text-sm">Error: {{ layer.error }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Single Layer Result -->
+        {% else %}
+        <div class="space-y-6">
+            <!-- Basic Layer Details -->
             <div class="border-b pb-4">
                 <h2 class="text-lg font-semibold text-gray-700 mb-2">Layer Details</h2>
                 <dl class="grid grid-cols-2 gap-4">
@@ -27,19 +90,34 @@
 
                     <dt class="text-sm font-medium text-gray-500">CRS:</dt>
                     <dd class="text-sm text-gray-900">{{ result.crs }}</dd>
+
+                    {% if result.description %}
+                    <dt class="text-sm font-medium text-gray-500">Description:</dt>
+                    <dd class="text-sm text-gray-900 col-span-2">{{ result.description }}</dd>
+                    {% endif %}
                 </dl>
             </div>
 
-            <div class="flex justify-between pt-4">
-                <a href="{{ url_for('main.upload_form') }}"
-                   class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
-                    Upload Another
-                </a>
-                <a href="{{ url_for('main.index') }}"
-                   class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
-                    View Map
-                </a>
+            <!-- AI Analysis -->
+            {% if result.ai_analysis %}
+            <div class="border-b pb-4">
+                <h2 class="text-lg font-semibold text-gray-700 mb-2">Data Analysis</h2>
+                {{ render_ai_analysis(result.ai_analysis) }}
             </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="flex justify-between pt-4">
+            <a href="{{ url_for('main.upload_form') }}"
+               class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition-colors">
+                Upload Another
+            </a>
+            <a href="{{ url_for('main.index') }}"
+               class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-colors">
+                View Map
+            </a>
         </div>
     </div>
 </div>

@@ -6,6 +6,7 @@ import math
 import pandas as pd
 from app.database import crud
 from processors.base_processor import BaseDataProcessor
+from tools.ai.smart_processor import SmartProcessor
 from utils.logger import setup_logger
 from config.logging_config import CURRENT_LOGGING_CONFIG
 
@@ -17,6 +18,10 @@ logger = setup_logger(
 
 
 class ShapefileProcessor(BaseDataProcessor):
+    def __init__(self, upload_dir: str = "data/uploads"):
+        super().__init__(upload_dir)
+        self.smart_processor = SmartProcessor()
+
     def get_required_files(self) -> Dict[str, str]:
         return {
             "shp": "Main shapefile",
@@ -37,7 +42,7 @@ class ShapefileProcessor(BaseDataProcessor):
         layer_name: str,
         db_session: Session,
         description: str = "",
-        selected_layer: str = None
+        selected_layer: str = None,
     ) -> Dict[str, Any]:
         try:
             # Create temporary directory for files
@@ -49,7 +54,7 @@ class ShapefileProcessor(BaseDataProcessor):
                 # Save files
                 for ext in self.get_file_extensions():
                     file = files[f"file_{ext[1:]}"]
-                    filepath = temp_dir / f"{layer_name}{ext}"
+                    filepath = temp_dir / f"{layer_name}_temp{ext}"
                     file.save(filepath)
                     saved_paths.append(filepath)
 
@@ -92,6 +97,16 @@ class ShapefileProcessor(BaseDataProcessor):
             # Determine geometry type
             geometry_type = self._get_geometry_type(gdf)
 
+            # AI Analysis
+            ai_analysis = self.smart_processor.analyze_dataset(gdf, layer_name)
+
+            # Use AI-suggested name and description if not provided
+            if not layer_name and ai_analysis.get("suggested_name"):
+                layer_name = ai_analysis["suggested_name"]
+
+            if not description and ai_analysis.get("suggested_description"):
+                description = ai_analysis["suggested_description"]
+
             # Create the layer
             layer = crud.create_spatial_layer(
                 db=db_session,
@@ -103,6 +118,13 @@ class ShapefileProcessor(BaseDataProcessor):
             # Process features
             features_added = self._process_features(gdf, layer.id, db_session)
 
+            logger.info(f"AI Analysis for {layer_name}:")
+            logger.info(f"Suggested Name: {ai_analysis.get('suggested_name')}")
+            logger.info(
+                f"Suggested Description: {ai_analysis.get('suggested_description')}"
+            )
+            logger.info(f"Data Quality Report: {ai_analysis.get('data_quality')}")
+
             return {
                 "success": True,
                 "message": "Layer created successfully",
@@ -111,6 +133,10 @@ class ShapefileProcessor(BaseDataProcessor):
                 "total_features": len(gdf),
                 "geometry_type": geometry_type,
                 "crs": str(gdf.crs),
+                "ai_analysis": {
+                    "data_quality": ai_analysis.get("data_quality"),
+                    "clusters": ai_analysis.get("clusters"),
+                },
             }
 
         except Exception as e:

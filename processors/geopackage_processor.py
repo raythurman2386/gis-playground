@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from pathlib import Path
 from app.database import crud
 from processors.base_processor import BaseDataProcessor
+from tools.ai.smart_processor import SmartProcessor
 from utils.logger import setup_logger
 from config.logging_config import CURRENT_LOGGING_CONFIG
 
@@ -18,6 +19,10 @@ logger = setup_logger(
 
 
 class GeoPackageProcessor(BaseDataProcessor):
+    def __init__(self, upload_dir: str = "data/uploads"):
+        super().__init__(upload_dir)
+        self.smart_processor = SmartProcessor()
+
     def get_required_files(self) -> Dict[str, str]:
         return {"gpkg": "GeoPackage file (.gpkg)"}
 
@@ -48,47 +53,32 @@ class GeoPackageProcessor(BaseDataProcessor):
                 if not available_layers:
                     return {"success": False, "error": "No layers found in GeoPackage"}
 
-                # If no specific layer is selected and there's only one layer, use it
-                if not selected_layer:
-                    if len(available_layers) == 1:
-                        selected_layer = available_layers[0]
-                    else:
-                        return {
-                            "success": False,
-                            "error": "Multiple layers found in GeoPackage. Please specify a layer.",
-                            "available_layers": available_layers,
-                        }
+                # Process all layers
+                processed_layers = []
+                for layer_name in available_layers:
+                    result = self._process_single_layer(
+                        gpkg_path=temp_path,
+                        layer_name=layer_name,
+                        db_session=db_session,
+                    )
+                    processed_layers.append(result)
 
-                # Read the selected layer
-                logger.info(f"Reading layer '{selected_layer}' from GeoPackage")
-                gdf = gpd.read_file(temp_path, layer=selected_layer)
-
-                # Standardize the GeoDataFrame
-                gdf = self._load_and_standardize_geodataframe(gdf)
-
-                # Determine geometry type
-                geometry_type = self._get_geometry_type(gdf)
-
-                # Create the layer
-                layer = crud.create_spatial_layer(
-                    db=db_session,
-                    name=layer_name,
-                    description=description,
-                    geometry_type=geometry_type,
-                )
-
-                # Process features
-                features_added = self._process_features(gdf, layer.id, db_session)
+                # Prepare summary result
+                successful_layers = [
+                    layer for layer in processed_layers if layer["success"]
+                ]
+                failed_layers = [
+                    layer for layer in processed_layers if not layer["success"]
+                ]
 
                 return {
-                    "success": True,
-                    "message": "GeoPackage layer processed successfully",
-                    "layer_id": layer.id,
-                    "feature_count": features_added,
-                    "total_features": len(gdf),
-                    "geometry_type": geometry_type,
-                    "crs": str(gdf.crs),
-                    "source_layer": selected_layer,
+                    "success": len(successful_layers) > 0,
+                    "message": f"Processed {len(successful_layers)} layers successfully"
+                    + (f", {len(failed_layers)} failed" if failed_layers else ""),
+                    "processed_layers": processed_layers,
+                    "total_layers": len(available_layers),
+                    "successful_layers": len(successful_layers),
+                    "failed_layers": len(failed_layers),
                 }
 
             finally:
@@ -99,6 +89,59 @@ class GeoPackageProcessor(BaseDataProcessor):
         except Exception as e:
             logger.error(f"Error processing GeoPackage: {e}", exc_info=True)
             return {"success": False, "error": str(e)}
+
+    def _process_single_layer(
+        self, gpkg_path: Path, layer_name: str, db_session: Session
+    ) -> Dict[str, Any]:
+        """Process a single layer from the GeoPackage"""
+        try:
+            # Read the layer
+            logger.info(f"Reading layer '{layer_name}' from GeoPackage")
+            gdf = gpd.read_file(gpkg_path, layer=layer_name)
+
+            # Standardize the GeoDataFrame
+            gdf = self._load_and_standardize_geodataframe(gdf)
+
+            # Get AI insights
+            ai_analysis = self.smart_processor.analyze_dataset(gdf, layer_name)
+
+            # Use AI-suggested name and description
+            suggested_name = ai_analysis.get("suggested_name") or f"layer_{layer_name}"
+            suggested_description = ai_analysis.get("suggested_description") or ""
+
+            # Determine geometry type
+            geometry_type = self._get_geometry_type(gdf)
+
+            # Create the layer
+            layer = crud.create_spatial_layer(
+                db=db_session,
+                name=suggested_name,
+                description=suggested_description,
+                geometry_type=geometry_type,
+            )
+
+            # Process features
+            features_added = self._process_features(gdf, layer.id, db_session)
+
+            return {
+                "success": True,
+                "source_layer": layer_name,
+                "layer_id": layer.id,
+                "layer_name": suggested_name,
+                "description": suggested_description,
+                "feature_count": features_added,
+                "total_features": len(gdf),
+                "geometry_type": geometry_type,
+                "crs": str(gdf.crs),
+                "ai_analysis": {
+                    "data_quality": ai_analysis.get("data_quality"),
+                    "clusters": ai_analysis.get("clusters"),
+                },
+            }
+
+        except Exception as e:
+            logger.error(f"Error processing layer '{layer_name}': {e}", exc_info=True)
+            return {"success": False, "source_layer": layer_name, "error": str(e)}
 
     def _load_and_standardize_geodataframe(
         self, gdf: gpd.GeoDataFrame
