@@ -1,75 +1,160 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <h1 class="text-2xl mb-4">Upload Shapefile</h1>
+<div class="container mx-auto px-4 py-8 max-w-3xl">
+    <!-- Header Section -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Upload Spatial Data</h1>
+        <p class="text-gray-600">Import your spatial data files for analysis and visualization</p>
+    </div>
 
-    <!-- Progress bar container (hidden by default) -->
-    <div id="uploadProgress" class="hidden mb-6">
-        <div class="mb-2 flex justify-between">
-            <span id="progressStatus" class="text-sm text-gray-600">Processing shapefile...</span>
+    <!-- Progress Bar -->
+    <div id="uploadProgress" class="hidden mb-8">
+        <div class="mb-3 flex justify-between items-center">
+            <span id="progressStatus" class="text-sm font-medium text-blue-600">Processing file...</span>
+            <span class="text-sm text-gray-500">Please wait...</span>
         </div>
-        <div class="w-full bg-gray-200 rounded-full h-2.5">
-            <div class="bg-blue-600 h-2.5 rounded-full animate-pulse"
-                 style="width: 100%">
-            </div>
+        <div class="w-full bg-gray-200 rounded-full h-2">
+            <div class="bg-blue-600 h-2 rounded-full animate-pulse" style="width: 100%"></div>
         </div>
     </div>
 
-    <form id="uploadForm"
-          action="{{ url_for('upload.upload_shapefile') }}"
-          method="post"
-          enctype="multipart/form-data"
-          class="space-y-4">
+    <!-- Upload Form -->
+    <form id="uploadForm" method="post" enctype="multipart/form-data"
+          class="bg-white rounded-lg shadow-md p-6 space-y-6">
 
-        <div>
+        <!-- File Type Selection -->
+        <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">File Type</label>
+            <select name="file_type" id="fileType"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm
+                           focus:border-blue-500 focus:ring-blue-500 transition-colors">
+                <option value="shapefile">Shapefile</option>
+                <option value="csv">CSV</option>
+            </select>
+        </div>
+
+        <!-- Layer Name -->
+        <div class="space-y-2">
             <label class="block text-sm font-medium text-gray-700">Layer Name</label>
-            <input type="text"
-                   name="layer_name"
-                   required
-                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+            <input type="text" name="layer_name" required
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm
+                          focus:border-blue-500 focus:ring-blue-500 transition-colors
+                          placeholder-gray-400"
+                   placeholder="Enter a name for this layer">
         </div>
 
-        <div>
+        <!-- Description -->
+        <div class="space-y-2">
             <label class="block text-sm font-medium text-gray-700">Description</label>
-            <textarea name="description"
-                      class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"></textarea>
+            <textarea name="description" rows="3"
+                      class="mt-1 block w-full rounded-md border-gray-300 shadow-sm
+                             focus:border-blue-500 focus:ring-blue-500 transition-colors
+                             placeholder-gray-400"
+                      placeholder="Add a description for this layer"></textarea>
         </div>
 
-        <div class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700">.shp File</label>
-                <input type="file"
-                       name="file_shp"
-                       required
-                       accept=".shp"
-                       class="mt-1 block w-full">
-            </div>
+        <!-- Shapefile Fields -->
+        <div id="shapefileFields" class="space-y-4">
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h3 class="text-sm font-medium text-gray-700 mb-4">Shapefile Components</h3>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700">.shx File</label>
-                <input type="file"
-                       name="file_shx"
-                       required
-                       accept=".shx"
-                       class="mt-1 block w-full">
-            </div>
+                <div class="space-y-4">
+                    <div class="relative">
+                        <label class="block text-sm font-medium text-gray-700">.shp File</label>
+                        <input type="file" name="file_shp" accept=".shp"
+                               class="mt-1 block w-full text-sm text-gray-500
+                                      file:mr-4 file:py-2 file:px-4
+                                      file:rounded-md file:border-0
+                                      file:text-sm file:font-semibold
+                                      file:bg-blue-50 file:text-blue-700
+                                      hover:file:bg-blue-100
+                                      transition-colors">
+                    </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700">.dbf File</label>
-                <input type="file"
-                       name="file_dbf"
-                       required
-                       accept=".dbf"
-                       class="mt-1 block w-full">
+                    <div class="relative">
+                        <label class="block text-sm font-medium text-gray-700">.shx File</label>
+                        <input type="file" name="file_shx" accept=".shx"
+                               class="mt-1 block w-full text-sm text-gray-500
+                                      file:mr-4 file:py-2 file:px-4
+                                      file:rounded-md file:border-0
+                                      file:text-sm file:font-semibold
+                                      file:bg-blue-50 file:text-blue-700
+                                      hover:file:bg-blue-100
+                                      transition-colors">
+                    </div>
+
+                    <div class="relative">
+                        <label class="block text-sm font-medium text-gray-700">.dbf File</label>
+                        <input type="file" name="file_dbf" accept=".dbf"
+                               class="mt-1 block w-full text-sm text-gray-500
+                                      file:mr-4 file:py-2 file:px-4
+                                      file:rounded-md file:border-0
+                                      file:text-sm file:font-semibold
+                                      file:bg-blue-50 file:text-blue-700
+                                      hover:file:bg-blue-100
+                                      transition-colors">
+                    </div>
+                </div>
             </div>
         </div>
 
-        <button type="submit"
-                id="submitButton"
-                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-            Upload
-        </button>
+        <!-- CSV Fields -->
+        <div id="csvFields" class="hidden space-y-4">
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h3 class="text-sm font-medium text-gray-700 mb-4">CSV File Upload</h3>
+
+                <div class="space-y-4">
+                    <div class="relative">
+                        <label class="block text-sm font-medium text-gray-700">CSV File</label>
+                        <input type="file" name="file_csv" accept=".csv"
+                               class="mt-1 block w-full text-sm text-gray-500
+                                      file:mr-4 file:py-2 file:px-4
+                                      file:rounded-md file:border-0
+                                      file:text-sm file:font-semibold
+                                      file:bg-blue-50 file:text-blue-700
+                                      hover:file:bg-blue-100
+                                      transition-colors">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Latitude Column</label>
+                            <input type="text" name="lat_column"
+                                   placeholder="e.g., latitude"
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm
+                                          focus:border-blue-500 focus:ring-blue-500">
+                            <p class="mt-1 text-xs text-gray-500">Leave blank for automatic detection</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Longitude Column</label>
+                            <input type="text" name="lon_column"
+                                   placeholder="e.g., longitude"
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm
+                                          focus:border-blue-500 focus:ring-blue-500">
+                            <p class="mt-1 text-xs text-gray-500">Leave blank for automatic detection</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="pt-4">
+            <button type="submit" id="submitButton"
+                    class="w-full bg-blue-600 text-white px-6 py-3 rounded-md
+                           hover:bg-blue-700 focus:outline-none focus:ring-2
+                           focus:ring-blue-500 focus:ring-offset-2
+                           transition-colors duration-200
+                           flex items-center justify-center space-x-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                <span>Upload File</span>
+            </button>
+        </div>
     </form>
 </div>
 
@@ -77,8 +162,30 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('uploadForm');
+        const fileType = document.getElementById('fileType');
+        const shapefileFields = document.getElementById('shapefileFields');
+        const csvFields = document.getElementById('csvFields');
         const submitButton = document.getElementById('submitButton');
         const progressDiv = document.getElementById('uploadProgress');
+
+        function updateFormFields() {
+            const selectedType = fileType.value;
+            form.action = selectedType === 'shapefile'
+                ? "{{ url_for('upload.upload_shapefile') }}"
+                : "{{ url_for('upload.upload_csv') }}";
+
+            if (selectedType === 'shapefile') {
+                shapefileFields.classList.remove('hidden');
+                csvFields.classList.add('hidden');
+                document.querySelectorAll('#shapefileFields input').forEach(input => input.required = true);
+                document.querySelectorAll('#csvFields input[type="file"]').forEach(input => input.required = false);
+            } else {
+                shapefileFields.classList.add('hidden');
+                csvFields.classList.remove('hidden');
+                document.querySelectorAll('#shapefileFields input').forEach(input => input.required = false);
+                document.querySelectorAll('#csvFields input[type="file"]').forEach(input => input.required = true);
+            }
+        }
 
         function disableForm(disable = true) {
             submitButton.disabled = disable;
@@ -86,10 +193,13 @@
             submitButton.classList.toggle('cursor-not-allowed', disable);
         }
 
+        fileType.addEventListener('change', updateFormFields);
         form.addEventListener('submit', function(e) {
             progressDiv.classList.remove('hidden');
             disableForm(true);
         });
+
+        updateFormFields();
     });
 </script>
 {% endblock %}
