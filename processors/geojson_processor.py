@@ -6,6 +6,8 @@ from pathlib import Path
 from app.database import crud
 from processors.base_processor import BaseDataProcessor
 from tools.ai.smart_processor import SmartProcessor
+from tools.conversion.crs_correction import standardize_crs
+from tools.validation.geometry import check_geometry_types, validate_and_fix_geometries
 from utils.logger import setup_logger
 from config.logging_config import CURRENT_LOGGING_CONFIG
 import json
@@ -88,7 +90,7 @@ class GeoJSONProcessor(BaseDataProcessor):
                     description = ai_analysis["suggested_description"]
 
                 # Determine geometry type
-                geometry_type = self._get_geometry_type(gdf)
+                geometry_type = check_geometry_types(gdf)
 
                 # Create the layer
                 layer = crud.create_spatial_layer(
@@ -151,33 +153,16 @@ class GeoJSONProcessor(BaseDataProcessor):
                 raise ValueError("Unable to read file with any supported encoding")
 
             # Handle CRS
-            if gdf.crs is None:
-                logger.warning("No CRS found, assuming WGS84 (EPSG:4326)")
-                gdf.set_crs(epsg=4326, inplace=True)
-            elif gdf.crs != "EPSG:4326":
-                logger.info(f"Converting CRS from {gdf.crs} to EPSG:4326")
-                gdf = gdf.to_crs(epsg=4326)
+            gdf = standardize_crs(gdf)
 
             # Validate and fix geometries
-            invalid_geometries = gdf[~gdf.geometry.is_valid]
-            if len(invalid_geometries) > 0:
-                logger.warning(
-                    f"Found {len(invalid_geometries)} invalid geometries. Attempting to fix..."
-                )
-                gdf.geometry = gdf.geometry.buffer(0)
+            gdf = validate_and_fix_geometries(gdf)
 
             return gdf
 
         except Exception as e:
             logger.error(f"Error loading geodataframe: {e}", exc_info=True)
             raise
-
-    def _get_geometry_type(self, gdf: gpd.GeoDataFrame) -> str:
-        """Determine the geometry type of a GeoDataFrame"""
-        geom_types = gdf.geometry.geom_type.unique()
-        if len(geom_types) == 1:
-            return geom_types[0].upper()
-        return "GEOMETRY"  # Mixed geometry types
 
     def _process_features(
         self, gdf: gpd.GeoDataFrame, layer_id: int, db_session: Session
