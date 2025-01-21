@@ -46,34 +46,56 @@ class ShapefileProcessor(BaseDataProcessor):
     ) -> Dict[str, Any]:
         try:
             # Create temporary directory for files
-            temp_dir = self.upload_dir / layer_name
+            safe_name = layer_name.replace(" ", "_") if layer_name else "temp"
+            temp_dir = self.upload_dir / safe_name
             temp_dir.mkdir(exist_ok=True)
             saved_paths = []
 
             try:
-                # Save files
-                for ext in self.get_file_extensions():
-                    file = files[f"file_{ext[1:]}"]
-                    filepath = temp_dir / f"{layer_name}_temp{ext}"
-                    file.save(filepath)
-                    saved_paths.append(filepath)
+                # Save files with consistent naming
+                base_filename = f"{safe_name}_temp"
+                shp_path = None
 
-                # Process shapefile
-                shp_path = temp_dir / f"{layer_name}.shp"
-                return self.process_shapefile(
+                for ext in self.get_file_extensions():
+                    file_key = f"file_{ext[1:]}"
+                    if file_key in files:
+                        filepath = temp_dir / f"{base_filename}{ext}"
+                        files[file_key].save(filepath)
+                        saved_paths.append(filepath)
+                        if ext == ".shp":
+                            shp_path = filepath
+
+                if not shp_path:
+                    return {"success": False, "error": "No .shp file found"}
+
+                logger.debug(f"Processing shapefile at: {shp_path}")
+
+                # Process shapefile using the temporary path
+                result = self.process_shapefile(
                     shp_path=shp_path,
                     layer_name=layer_name,
                     db_session=db_session,
                     description=description,
                 )
 
+                return result
+
             finally:
                 # Clean up
                 for path in saved_paths:
-                    if path.exists():
-                        path.unlink()
-                if temp_dir.exists():
-                    temp_dir.rmdir()
+                    try:
+                        if path.exists():
+                            path.unlink()
+                    except Exception as e:
+                        logger.warning(f"Failed to delete temporary file {path}: {e}")
+
+                try:
+                    if temp_dir.exists():
+                        temp_dir.rmdir()
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to delete temporary directory {temp_dir}: {e}"
+                    )
 
         except Exception as e:
             logger.error(f"Error processing shapefile: {e}", exc_info=True)
@@ -90,7 +112,11 @@ class ShapefileProcessor(BaseDataProcessor):
         Process a shapefile and store it in the database
         """
         try:
-            # Read the shapefile
+            # Convert to Path and verify existence
+            shp_path = Path(shp_path)
+            if not shp_path.exists():
+                raise FileNotFoundError(f"Shapefile not found at: {shp_path}")
+
             logger.info(f"Reading shapefile from: {shp_path}")
             gdf = self._load_and_standardize_geodataframe(shp_path)
 

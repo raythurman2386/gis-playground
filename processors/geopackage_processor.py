@@ -43,7 +43,8 @@ class GeoPackageProcessor(BaseDataProcessor):
         try:
             # Save GPKG file temporarily
             gpkg_file = files["file_gpkg"]
-            temp_path = self.upload_dir / f"{layer_name}_temp.gpkg"
+            safe_name = layer_name.replace(" ", "_") if layer_name else "temp"
+            temp_path = self.upload_dir / f"{safe_name}_temp.gpkg"
             gpkg_file.save(temp_path)
 
             try:

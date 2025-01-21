@@ -42,26 +42,40 @@ class GeoJSONProcessor(BaseDataProcessor):
         try:
             # Save GeoJSON file temporarily
             geojson_file = files["file_geojson"]
-            temp_path = self.upload_dir / f"{layer_name}_temp.geojson"
+            safe_name = layer_name.replace(" ", "_") if layer_name else "temp"
+            temp_path = self.upload_dir / f"{safe_name}_temp.geojson"
             geojson_file.save(temp_path)
 
             try:
                 # Validate GeoJSON structure
-                with open(temp_path, "r") as f:
+                encodings_to_try = ["utf-8", "utf-8-sig", "latin-1", "cp1252"]
+                json_data = None
+
+                for encoding in encodings_to_try:
                     try:
-                        json.load(f)
-                    except json.JSONDecodeError as e:
-                        return {
-                            "success": False,
-                            "error": f"Invalid JSON format: {str(e)}",
-                        }
+                        with open(temp_path, "r", encoding=encoding) as f:
+                            try:
+                                json_data = json.load(f)
+                                logger.debug(
+                                    f"Successfully read file with {encoding} encoding"
+                                )
+                                break
+                            except json.JSONDecodeError:
+                                continue
+                    except UnicodeDecodeError:
+                        continue
 
-                # Read GeoJSON file
+                if json_data is None:
+                    return {
+                        "success": False,
+                        "error": "Unable to read GeoJSON file. File may be corrupted or using unsupported encoding.",
+                    }
+
+                # Read GeoJSON file with detected encoding
                 logger.info(f"Reading GeoJSON from: {temp_path}")
-                gdf = self._load_and_standardize_geodataframe(temp_path)
-
-                # Determine geometry type
-                geometry_type = self._get_geometry_type(gdf)
+                gdf = gpd.read_file(
+                    temp_path, encoding="utf-8"
+                )  # GeoJSON should be UTF-8 after json.load
 
                 # AI Analysis
                 ai_analysis = self.smart_processor.analyze_dataset(gdf, layer_name)
@@ -72,6 +86,9 @@ class GeoJSONProcessor(BaseDataProcessor):
 
                 if not description and ai_analysis.get("suggested_description"):
                     description = ai_analysis["suggested_description"]
+
+                # Determine geometry type
+                geometry_type = self._get_geometry_type(gdf)
 
                 # Create the layer
                 layer = crud.create_spatial_layer(
@@ -84,10 +101,18 @@ class GeoJSONProcessor(BaseDataProcessor):
                 # Process features
                 features_added = self._process_features(gdf, layer.id, db_session)
 
+                logger.info(f"AI Analysis for {layer_name}:")
+                logger.info(f"Suggested Name: {ai_analysis.get('suggested_name')}")
+                logger.info(
+                    f"Suggested Description: {ai_analysis.get('suggested_description')}"
+                )
+                logger.info(f"Data Quality Report: {ai_analysis.get('data_quality')}")
+
                 return {
                     "success": True,
                     "message": "GeoJSON processed successfully",
                     "layer_id": layer.id,
+                    "layer_name": layer_name,
                     "feature_count": features_added,
                     "total_features": len(gdf),
                     "geometry_type": geometry_type,
@@ -111,25 +136,41 @@ class GeoJSONProcessor(BaseDataProcessor):
         self, file_path: Union[str, Path]
     ) -> gpd.GeoDataFrame:
         """Load and standardize a GeoDataFrame from a GeoJSON file"""
-        gdf = gpd.read_file(file_path)
+        try:
+            # Try different encodings
+            encodings_to_try = ["utf-8", "utf-8-sig", "latin-1", "cp1252"]
 
-        # Handle CRS
-        if gdf.crs is None:
-            logger.warning("No CRS found, assuming WGS84 (EPSG:4326)")
-            gdf.set_crs(epsg=4326, inplace=True)
-        elif gdf.crs != "EPSG:4326":
-            logger.info(f"Converting CRS from {gdf.crs} to EPSG:4326")
-            gdf = gdf.to_crs(epsg=4326)
+            for encoding in encodings_to_try:
+                try:
+                    gdf = gpd.read_file(file_path, encoding=encoding)
+                    logger.debug(f"Successfully read file with {encoding} encoding")
+                    break
+                except UnicodeDecodeError:
+                    continue
+            else:
+                raise ValueError("Unable to read file with any supported encoding")
 
-        # Validate and fix geometries
-        invalid_geometries = gdf[~gdf.geometry.is_valid]
-        if len(invalid_geometries) > 0:
-            logger.warning(
-                f"Found {len(invalid_geometries)} invalid geometries. Attempting to fix..."
-            )
-            gdf.geometry = gdf.geometry.buffer(0)
+            # Handle CRS
+            if gdf.crs is None:
+                logger.warning("No CRS found, assuming WGS84 (EPSG:4326)")
+                gdf.set_crs(epsg=4326, inplace=True)
+            elif gdf.crs != "EPSG:4326":
+                logger.info(f"Converting CRS from {gdf.crs} to EPSG:4326")
+                gdf = gdf.to_crs(epsg=4326)
 
-        return gdf
+            # Validate and fix geometries
+            invalid_geometries = gdf[~gdf.geometry.is_valid]
+            if len(invalid_geometries) > 0:
+                logger.warning(
+                    f"Found {len(invalid_geometries)} invalid geometries. Attempting to fix..."
+                )
+                gdf.geometry = gdf.geometry.buffer(0)
+
+            return gdf
+
+        except Exception as e:
+            logger.error(f"Error loading geodataframe: {e}", exc_info=True)
+            raise
 
     def _get_geometry_type(self, gdf: gpd.GeoDataFrame) -> str:
         """Determine the geometry type of a GeoDataFrame"""

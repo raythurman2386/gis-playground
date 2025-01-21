@@ -45,7 +45,8 @@ class CSVProcessor(BaseDataProcessor):
         try:
             # Save CSV file temporarily
             csv_file = files["file_csv"]
-            temp_path = self.upload_dir / f"{layer_name}_temp.csv"
+            safe_name = layer_name.replace(" ", "_") if layer_name else "temp"
+            temp_path = self.upload_dir / f"{safe_name}_temp.csv"
             csv_file.save(temp_path)
 
             try:
