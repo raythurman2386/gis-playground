@@ -1,7 +1,7 @@
 from flask import Flask
 from config.logging_config import CURRENT_LOGGING_CONFIG
 from utils.logger import setup_logger
-from app.database.base import init_db
+from app.database.base import check_tables_exist
 
 logger = setup_logger(
     "flask_app",
@@ -13,9 +13,9 @@ logger = setup_logger(
 def create_app():
     app = Flask(__name__)
 
-    if not init_db():
-        logger.error("Failed to initialize database")
-        raise RuntimeError("Database initialization failed")
+    if not check_tables_exist():
+        logger.error("Database tables do not exist. Please run 'python manage.py init' to initialize the database.")
+        raise RuntimeError("Database tables do not exist. Please run 'python manage.py init' to initialize the database.")
 
     # Register blueprints
     from app.routes import main, api, upload

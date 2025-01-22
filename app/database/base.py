@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from utils.logger import setup_logger
@@ -18,7 +18,7 @@ SQLALCHEMY_DATABASE_URL = f"postgresql://{os.getenv('POSTGRES_USER')}:{os.getenv
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    echo=True,  # Set to False in production
+    echo=os.getenv('FLASK_ENV') != 'production',
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -26,40 +26,26 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
+def check_tables_exist():
+    """Check if the required tables exist in the database"""
+    try:
+        inspector = inspect(engine)
+        required_tables = ["spatial_layers", "features", "layer_attributes", "upload_history"]
+        existing_tables = inspector.get_table_names()
+        return all(table in existing_tables for table in required_tables)
+    except Exception as e:
+        logger.error(f"Failed to check tables: {e}")
+        return False
+
+
 def get_db():
     """Database session generator"""
+    if not check_tables_exist():
+        logger.error("Database tables do not exist. Please run 'python manage.py init' to initialize the database.")
+        raise RuntimeError("Database tables do not exist. Please run 'python manage.py init' to initialize the database.")
+
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
-
-
-def create_tables():
-    """Create all database tables"""
-    try:
-        from app.models.spatial import (
-            SpatialLayer,
-            Feature,
-            LayerAttribute,
-            UploadHistory,
-        )
-
-        Base.metadata.create_all(bind=engine)
-        logger.info("Database tables created successfully")
-        return True
-    except Exception as e:
-        logger.error(f"Failed to create tables: {e}")
-        return False
-
-
-def init_db():
-    """Initialize the database"""
-    try:
-        # Create all tables
-        create_tables()
-        logger.info("Database initialized successfully with PostGIS extensions")
-        return True
-    except Exception as e:
-        logger.error(f"Failed to initialize database: {e}")
-        return False

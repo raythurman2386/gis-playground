@@ -1,6 +1,5 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 from app.database.base import Base, engine
-from app.models.spatial import SpatialLayer, Feature, LayerAttribute, UploadHistory
 from utils.logger import setup_logger
 from config.logging_config import CURRENT_LOGGING_CONFIG
 
@@ -9,6 +8,17 @@ logger = setup_logger(
     log_level=CURRENT_LOGGING_CONFIG["log_level"],
     log_dir=CURRENT_LOGGING_CONFIG["log_dir"],
 )
+
+
+def init_db():
+    """Initialize the database"""
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database initialized successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Error initializing database: {e}")
+        return False
 
 
 def truncate_tables():

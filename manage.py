@@ -1,11 +1,21 @@
 import click
-from app.database.management import truncate_tables, reset_database, get_table_counts
+from app.database.management import truncate_tables, reset_database, get_table_counts, init_db
 
 
 @click.group()
 def cli():
     """Database management commands"""
     pass
+
+
+@cli.command()
+def init():
+    """Initialize the database"""
+    if click.confirm("Are you sure you want to initialize the database?"):
+        if init_db():
+            click.echo("Successfully initialized the database")
+        else:
+            click.echo("Failed to initialize database")
 
 
 @cli.command()
