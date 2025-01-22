@@ -1,6 +1,7 @@
 import nltk
 import numpy as np
 import pandas as pd
+from pyproj import CRS
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
 from typing import Dict, List
@@ -269,10 +270,20 @@ class SmartProcessor:
             if len(numeric_cols) == 0:
                 return None
 
-            # Create feature matrix with numeric columns and centroid coordinates
+            # Create feature matrix with numeric columns
             features = gdf[numeric_cols].fillna(0).copy()
-            features["centroid_x"] = gdf.geometry.centroid.x
-            features["centroid_y"] = gdf.geometry.centroid.y
+
+            # Check if the CRS is geographic
+            if gdf.crs is None or CRS(gdf.crs).is_geographic:
+                # Reproject to a suitable projected CRS (e.g., Web Mercator)
+                gdf_projected = gdf.to_crs(epsg=3857)
+            else:
+                gdf_projected = gdf
+
+            # Calculate centroids in the projected CRS
+            centroids = gdf_projected.geometry.centroid
+            features["centroid_x"] = centroids.x
+            features["centroid_y"] = centroids.y
 
             # Normalize features
             from sklearn.preprocessing import StandardScaler

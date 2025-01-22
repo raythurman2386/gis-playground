@@ -210,7 +210,18 @@ function updateLayerStyle(layerId) {
 
         customLayers[layerId].layer.eachLayer(function(layer) {
             layer.defaultStyle = {...newStyle};
-            layer.setStyle(newStyle);
+            if (layer instanceof L.CircleMarker) {
+                // Handle point features
+                layer.setStyle({
+                    fillColor: newStyle.fillColor,
+                    color: newStyle.color,
+                    weight: newStyle.weight,
+                    fillOpacity: newStyle.fillOpacity
+                });
+            } else {
+                // Handle path features
+                layer.setStyle(newStyle);
+            }
         });
     }
 }
@@ -337,7 +348,19 @@ function loadLayer(layerId, layerName) {
             };
 
             const newLayer = L.geoJSON(data, {
+                pointToLayer: function(feature, latlng) {
+                    // Handle point features
+                    return L.circleMarker(latlng, {
+                        radius: 8,
+                        fillColor: baseStyle.fillColor,
+                        color: baseStyle.color,
+                        weight: baseStyle.weight,
+                        opacity: baseStyle.opacity,
+                        fillOpacity: baseStyle.fillOpacity
+                    });
+                },
                 style: function(feature) {
+                    // Style for line and polygon features
                     return {...baseStyle};
                 },
                 onEachFeature: function(feature, layer) {
@@ -346,21 +369,45 @@ function loadLayer(layerId, layerName) {
                     layer.on({
                         mouseover: function(e) {
                             const layer = e.target;
-                            const highlightStyle = {
-                                ...layer.defaultStyle,
-                                weight: layer.defaultStyle.weight + 1,
-                                fillOpacity: Math.min(layer.defaultStyle.fillOpacity + 0.2, 1)
-                            };
-                            layer.setStyle(highlightStyle);
+                            if (feature.geometry.type === 'Point') {
+                                // Handle point feature highlighting
+                                layer.setRadius(12);
+                                layer.setStyle({
+                                    fillOpacity: Math.min(baseStyle.fillOpacity + 0.2, 1),
+                                    weight: baseStyle.weight + 1
+                                });
+                            } else {
+                                // Handle path feature highlighting
+                                const highlightStyle = {
+                                    ...layer.defaultStyle,
+                                    weight: layer.defaultStyle.weight + 1,
+                                    fillOpacity: Math.min(layer.defaultStyle.fillOpacity + 0.2, 1)
+                                };
+                                layer.setStyle(highlightStyle);
+                            }
                             layer.bringToFront();
                             updateCustomLayerStatistics(feature.properties);
                         },
                         mouseout: function(e) {
                             const layer = e.target;
-                            layer.setStyle(layer.defaultStyle);
+                            if (feature.geometry.type === 'Point') {
+                                // Reset point feature style
+                                layer.setRadius(8);
+                                layer.setStyle({
+                                    fillOpacity: baseStyle.fillOpacity,
+                                    weight: baseStyle.weight
+                                });
+                            } else {
+                                // Reset path feature style
+                                layer.setStyle(layer.defaultStyle);
+                            }
                         },
                         click: function(e) {
-                            map.fitBounds(e.target.getBounds());
+                            if (feature.geometry.type === 'Point') {
+                                map.setView(e.target.getLatLng(), map.getZoom());
+                            } else {
+                                map.fitBounds(e.target.getBounds());
+                            }
                             updateCustomLayerStatistics(feature.properties);
                         }
                     });
