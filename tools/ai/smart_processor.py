@@ -1,3 +1,4 @@
+from datetime import datetime
 import nltk
 import numpy as np
 import pandas as pd
@@ -30,7 +31,7 @@ class SmartProcessor:
             # Download required NLTK data
             nltk.download("punkt", quiet=True)
             nltk.download("punkt_tab", quiet=True)
-            nltk.download("averaged_perceptron_tagger", quiet=True)
+            nltk.download("averaged_perceptron_tagger_eng", quiet=True)
             nltk.download("maxent_ne_chunker", quiet=True)
             nltk.download("words", quiet=True)
             nltk.download("stopwords", quiet=True)
@@ -71,58 +72,65 @@ class SmartProcessor:
             return {"error": str(e)}
 
     def _suggest_layer_name(self, gdf: gpd.GeoDataFrame) -> str:
-        """Generate a suggested layer name based on content analysis"""
+        """Generate a suggested layer name based on intelligent attribute analysis"""
         try:
-            # Get geometry type
-            geom_type = gdf.geometry.geom_type.iloc[0].lower()
+            column_scores = {}
 
-            # Collect text from string columns
-            text_data = []
-            for col in gdf.select_dtypes(include=["object"]).columns:
-                if col != "geometry":
-                    sample = gdf[col].dropna().head(10).astype(str).tolist()
-                    text_data.extend(sample)
+            for col in gdf.columns:
+                if col == 'geometry':
+                    continue
 
-            if not text_data:
-                return f"unnamed_{geom_type}"
+                score = 0
+                col_lower = col.lower()
+                tokens = nltk.word_tokenize(col_lower)
+                pos_tags = nltk.pos_tag(tokens)
 
-            # Process with NLTK
-            combined_text = " ".join(text_data)
-            tokens = nltk.word_tokenize(combined_text)
+                # Give higher scores to columns with nouns
+                for word, pos in pos_tags:
+                    if pos.startswith('NN'):
+                        score += 1
+                    if word not in self.stop_words:
+                        score += 0.5
 
-            # Remove stop words and non-alphabetic tokens
-            tokens = [
-                word.lower()
-                for word in tokens
-                if word.isalpha() and word.lower() not in self.stop_words
-            ]
+                # Analyze column content
+                sample_values = gdf[col].dropna().astype(str).head(10)
+                if not sample_values.empty:
+                    # Check if values are primarily text and meaningful
+                    sample_text = ' '.join(sample_values)
+                    if sample_text.strip():
+                        value_tokens = nltk.word_tokenize(sample_text.lower())
+                        value_pos = nltk.pos_tag(value_tokens)
 
-            # Get named entities
-            tagged = nltk.pos_tag(tokens)
-            entities = nltk.chunk.ne_chunk(tagged)
+                        # Count meaningful words in values
+                        meaningful_words = [word for word, pos in value_pos
+                                            if pos.startswith('NN') and word not in self.stop_words]
 
-            # Extract named entities
-            named_entities = []
-            for chunk in entities:
-                if hasattr(chunk, "label"):
-                    named_entities.append(" ".join(c[0] for c in chunk))
+                        # Add to score based on meaningful content
+                        score += len(set(meaningful_words)) * 0.2
 
-            if named_entities:
-                # Use the first named entity
-                name = named_entities[0].lower().replace(" ", "_")
-                return f"{name}_{geom_type}"
+                        # Prefer columns with reasonable unique value counts
+                        unique_ratio = len(gdf[col].unique()) / len(gdf)
+                        if 0.01 < unique_ratio < 0.9:
+                            score += 1
 
-            # If no named entities, use most common meaningful word
-            if tokens:
-                freq_dist = nltk.FreqDist(tokens)
-                most_common = freq_dist.most_common(1)[0][0]
-                return f"{most_common}_{geom_type}"
+                column_scores[col] = score
 
-            return f"unnamed_{geom_type}"
+            # Get the column with the highest score
+            if column_scores:
+                best_column = max(column_scores.items(), key=lambda x: x[1])[0]
+                most_common = gdf[best_column].dropna().mode().iloc[0] if not gdf[best_column].empty else None
+
+                if most_common:
+                    return str(most_common).lower().replace(' ', '_')[:50]
+
+            # Generate timestamp-based name if no meaningful name found
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            return f"layer_{timestamp}"
 
         except Exception as e:
-            logger.error(f"Error suggesting layer name: {e}", exc_info=True)
-            return "unnamed_layer"
+            logger.error(f"Error suggesting layer name: {e}")
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            return f"layer_{timestamp}"
 
     def _generate_description(self, gdf: gpd.GeoDataFrame, layer_name: str) -> str:
         """
@@ -157,12 +165,10 @@ class SmartProcessor:
 
             # Build description
             description_parts = [
-                f"This layer contains {feature_count} {geometry_type.lower()} features",
+                f"{layer_name} contains {feature_count} {geometry_type.lower()} features",
                 f"with {attribute_count} attributes.",
                 f"The data covers a spatial extent of {extent}.",
             ]
-
-            # Add spatial extent
 
             # Add attribute information
             if len(numeric_cols) > 0:
