@@ -433,7 +433,7 @@ function removeLayer(layerId) {
 }
 
 function displayStatistics(properties, type) {
-    const statsDiv = document.getElementById('statistics');
+    const statsDiv = document.getElementById('attributes');
         const clearButton = document.getElementById('clearStats');
         clearButton.classList.remove('hidden');
 
@@ -512,7 +512,7 @@ function updateCustomLayerStatistics(properties) {
 }
 
 function clearStatistics() {
-    const statsDiv = document.getElementById('statistics');
+    const statsDiv = document.getElementById('attributes');
         const clearButton = document.getElementById('clearStats');
         statsDiv.innerHTML = `
             <div class="text-center text-gray-500 py-4">
