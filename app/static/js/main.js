@@ -8,9 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const baseMap = new BaseMap('map');
     const map = baseMap.getMap();
     const fireLayers = new FireLayers(map);
-    const customLayers = new CustomLayers(map, fireLayers);
+    const customLayers = new CustomLayers(map);
 
-    new LayerControl(map, baseMap.getBaseMaps(), {...fireLayers.getLayers(), ...customLayers.layers});
+    new LayerControl(map, baseMap.getBaseMaps(), {...fireLayers.getLayers()});
 
     customLayers.loadAvailableLayers();
 });
