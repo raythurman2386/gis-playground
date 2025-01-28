@@ -95,9 +95,7 @@ class ShapefileProcessor(BaseDataProcessor):
                     if temp_dir.exists():
                         temp_dir.rmdir()
                 except Exception as e:
-                    logger.warning(
-                        f"Failed to delete temporary directory {temp_dir}: {e}"
-                    )
+                    logger.warning(f"Failed to delete temporary directory {temp_dir}: {e}")
 
         except Exception as e:
             logger.error(f"Error processing shapefile: {e}", exc_info=True)
@@ -148,9 +146,7 @@ class ShapefileProcessor(BaseDataProcessor):
 
             logger.info(f"AI Analysis for {layer_name}:")
             logger.info(f"Suggested Name: {ai_analysis.get('suggested_name')}")
-            logger.info(
-                f"Suggested Description: {ai_analysis.get('suggested_description')}"
-            )
+            logger.info(f"Suggested Description: {ai_analysis.get('suggested_description')}")
             logger.info(f"Data Quality Report: {ai_analysis.get('data_quality')}")
 
             return {
@@ -171,9 +167,7 @@ class ShapefileProcessor(BaseDataProcessor):
             logger.error(f"Error processing shapefile: {e}", exc_info=True)
             return {"success": False, "error": str(e)}
 
-    def _load_and_standardize_geodataframe(
-        self, file_path: Union[str, Path]
-    ) -> gpd.GeoDataFrame:
+    def _load_and_standardize_geodataframe(self, file_path: Union[str, Path]) -> gpd.GeoDataFrame:
         """
         Load and standardize a GeoDataFrame from a file
         """
@@ -187,9 +181,7 @@ class ShapefileProcessor(BaseDataProcessor):
 
         return gdf
 
-    def _process_features(
-        self, gdf: gpd.GeoDataFrame, layer_id: int, db_session: Session
-    ) -> int:
+    def _process_features(self, gdf: gpd.GeoDataFrame, layer_id: int, db_session: Session) -> int:
         """Process features from a GeoDataFrame into the database"""
         features_added = 0
         for idx, row in gdf.iterrows():
@@ -222,9 +214,7 @@ class ShapefileProcessor(BaseDataProcessor):
 
         return features_added
 
-    def get_layer_as_geojson(
-        self, layer_id: int, db_session: Session
-    ) -> Optional[Dict]:
+    def get_layer_as_geojson(self, layer_id: int, db_session: Session) -> Optional[Dict]:
         """
         Retrieve a layer from the database as GeoJSON
 

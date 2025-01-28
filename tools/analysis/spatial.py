@@ -17,29 +17,18 @@ def get_spatial_extent(gdf: gpd.GeoDataFrame) -> Dict[str, float]:
     """
     try:
         bounds = gdf.total_bounds
-        center = [(bounds[0] + bounds[2])/2, (bounds[1] + bounds[3])/2]
+        center = [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2]
 
         return {
-            "bounds": {
-                "minx": bounds[0],
-                "miny": bounds[1],
-                "maxx": bounds[2],
-                "maxy": bounds[3]
-            },
-            "center": {
-                "x": center[0],
-                "y": center[1]
-            }
+            "bounds": {"minx": bounds[0], "miny": bounds[1], "maxx": bounds[2], "maxy": bounds[3]},
+            "center": {"x": center[0], "y": center[1]},
         }
     except Exception as e:
         logger.error(f"Error calculating spatial extent: {e}")
         raise
 
 
-def analyze_feature_density(
-        gdf: gpd.GeoDataFrame,
-        grid_size: Optional[float] = None
-) -> Dict:
+def analyze_feature_density(gdf: gpd.GeoDataFrame, grid_size: Optional[float] = None) -> Dict:
     """
     Analyze the spatial density of features
     """
@@ -52,7 +41,7 @@ def analyze_feature_density(
             "feature_count": len(gdf),
             "total_area": area,
             "density": density,
-            "units": "features per square degree"
+            "units": "features per square degree",
         }
     except Exception as e:
         logger.error(f"Error analyzing feature density: {e}")
@@ -72,14 +61,14 @@ def calculate_feature_statistics(gdf: gpd.GeoDataFrame) -> Dict:
                 "min": float(areas.min()),
                 "max": float(areas.max()),
                 "mean": float(areas.mean()),
-                "std": float(areas.std())
+                "std": float(areas.std()),
             },
             "length_stats": {
                 "min": float(lengths.min()),
                 "max": float(lengths.max()),
                 "mean": float(lengths.mean()),
-                "std": float(lengths.std())
-            }
+                "std": float(lengths.std()),
+            },
         }
     except Exception as e:
         logger.error(f"Error calculating feature statistics: {e}")

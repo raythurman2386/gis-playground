@@ -58,9 +58,7 @@ class GeoJSONProcessor(BaseDataProcessor):
                         with open(temp_path, "r", encoding=encoding) as f:
                             try:
                                 json_data = json.load(f)
-                                logger.debug(
-                                    f"Successfully read file with {encoding} encoding"
-                                )
+                                logger.debug(f"Successfully read file with {encoding} encoding")
                                 break
                             except json.JSONDecodeError:
                                 continue
@@ -105,9 +103,7 @@ class GeoJSONProcessor(BaseDataProcessor):
 
                 logger.info(f"AI Analysis for {layer_name}:")
                 logger.info(f"Suggested Name: {ai_analysis.get('suggested_name')}")
-                logger.info(
-                    f"Suggested Description: {ai_analysis.get('suggested_description')}"
-                )
+                logger.info(f"Suggested Description: {ai_analysis.get('suggested_description')}")
                 logger.info(f"Data Quality Report: {ai_analysis.get('data_quality')}")
 
                 return {
@@ -134,9 +130,7 @@ class GeoJSONProcessor(BaseDataProcessor):
             logger.error(f"Error processing GeoJSON: {e}", exc_info=True)
             return {"success": False, "error": str(e)}
 
-    def _load_and_standardize_geodataframe(
-        self, file_path: Union[str, Path]
-    ) -> gpd.GeoDataFrame:
+    def _load_and_standardize_geodataframe(self, file_path: Union[str, Path]) -> gpd.GeoDataFrame:
         """Load and standardize a GeoDataFrame from a GeoJSON file"""
         try:
             # Try different encodings
@@ -164,9 +158,7 @@ class GeoJSONProcessor(BaseDataProcessor):
             logger.error(f"Error loading geodataframe: {e}", exc_info=True)
             raise
 
-    def _process_features(
-        self, gdf: gpd.GeoDataFrame, layer_id: int, db_session: Session
-    ) -> int:
+    def _process_features(self, gdf: gpd.GeoDataFrame, layer_id: int, db_session: Session) -> int:
         """Process features from a GeoDataFrame into the database"""
         features_added = 0
         for idx, row in gdf.iterrows():

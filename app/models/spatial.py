@@ -23,9 +23,7 @@ class Feature(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     layer_id = Column(Integer, ForeignKey("spatial_layers.id"), index=True)
-    geometry = Column(
-        Geography("GEOMETRY", srid=4326)
-    )  # Using Geography type for lat/lon
+    geometry = Column(Geography("GEOMETRY", srid=4326))  # Using Geography type for lat/lon
     properties = Column(String)  # JSON string of properties
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

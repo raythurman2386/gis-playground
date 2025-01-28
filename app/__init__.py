@@ -14,8 +14,12 @@ def create_app():
     app = Flask(__name__)
 
     if not check_tables_exist():
-        logger.error("Database tables do not exist. Please run 'python manage.py init' to initialize the database.")
-        raise RuntimeError("Database tables do not exist. Please run 'python manage.py init' to initialize the database.")
+        logger.error(
+            "Database tables do not exist. Please run 'python manage.py init' to initialize the database."
+        )
+        raise RuntimeError(
+            "Database tables do not exist. Please run 'python manage.py init' to initialize the database."
+        )
 
     # Register blueprints
     from app.routes import main, api, upload

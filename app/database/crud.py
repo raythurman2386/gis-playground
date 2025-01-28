@@ -11,18 +11,14 @@ def create_spatial_layer(
     db: Session, name: str, description: str, geometry_type: str
 ) -> SpatialLayer:
     """Create a new spatial layer"""
-    db_layer = SpatialLayer(
-        name=name, description=description, geometry_type=geometry_type
-    )
+    db_layer = SpatialLayer(name=name, description=description, geometry_type=geometry_type)
     db.add(db_layer)
     db.commit()
     db.refresh(db_layer)
     return db_layer
 
 
-def add_feature(
-    db: Session, layer_id: int, geometry: dict, properties: dict
-) -> Feature:
+def add_feature(db: Session, layer_id: int, geometry: dict, properties: dict) -> Feature:
     """Add a new feature to a layer"""
     try:
         # Convert GeoJSON geometry to Shapely and ensure it's 2D
@@ -32,9 +28,7 @@ def add_feature(
         # Ensure properties can be serialized to JSON
         cleaned_properties = json.dumps(properties, default=lambda x: None)
 
-        db_feature = Feature(
-            layer_id=layer_id, geometry=geom, properties=cleaned_properties
-        )
+        db_feature = Feature(layer_id=layer_id, geometry=geom, properties=cleaned_properties)
         db.add(db_feature)
         db.commit()
         db.refresh(db_feature)

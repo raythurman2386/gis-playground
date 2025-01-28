@@ -31,15 +31,15 @@ def features_to_geojson(features):
 def prepare_geometry_for_db(geometry):
     """
     Prepare a geometry for database storage by ensuring it's 2D.
-    
+
     Args:
         geometry: Shapely geometry object
-        
+
     Returns:
         WKB representation of the 2D geometry ready for database storage
     """
     # Convert to 2D if necessary
     geometry_2d = convert_to_2d(geometry)
-    
+
     # Convert to WKB format for database storage
     return from_shape(geometry_2d)

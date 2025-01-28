@@ -67,12 +67,8 @@ class GeoPackageProcessor(BaseDataProcessor):
                     processed_layers.append(result)
 
                 # Prepare summary result
-                successful_layers = [
-                    layer for layer in processed_layers if layer["success"]
-                ]
-                failed_layers = [
-                    layer for layer in processed_layers if not layer["success"]
-                ]
+                successful_layers = [layer for layer in processed_layers if layer["success"]]
+                failed_layers = [layer for layer in processed_layers if not layer["success"]]
 
                 return {
                     "success": len(successful_layers) > 0,
@@ -146,9 +142,7 @@ class GeoPackageProcessor(BaseDataProcessor):
             logger.error(f"Error processing layer '{layer_name}': {e}", exc_info=True)
             return {"success": False, "source_layer": layer_name, "error": str(e)}
 
-    def _load_and_standardize_geodataframe(
-        self, gdf: gpd.GeoDataFrame
-    ) -> gpd.GeoDataFrame:
+    def _load_and_standardize_geodataframe(self, gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
         """Standardize the GeoDataFrame"""
         # Handle CRS
         gdf = standardize_crs(gdf)
@@ -158,9 +152,7 @@ class GeoPackageProcessor(BaseDataProcessor):
 
         return gdf
 
-    def _process_features(
-        self, gdf: gpd.GeoDataFrame, layer_id: int, db_session: Session
-    ) -> int:
+    def _process_features(self, gdf: gpd.GeoDataFrame, layer_id: int, db_session: Session) -> int:
         """Process features from a GeoDataFrame into the database"""
         features_added = 0
         for idx, row in gdf.iterrows():

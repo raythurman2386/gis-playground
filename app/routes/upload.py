@@ -40,9 +40,7 @@ def upload_shapefile():
 
         # Validate files
         if not processor.validate_files(request.files):
-            return render_template(
-                "upload_error.html", error_message="Missing required files"
-            )
+            return render_template("upload_error.html", error_message="Missing required files")
 
         # Process the files
         result = processor.process_data(
@@ -76,9 +74,7 @@ def upload_csv():
 
         processor = DataProcessorFactory.get_processor("csv")
         if not processor.validate_files(request.files):
-            return render_template(
-                "upload_error.html", error_message="Missing CSV file"
-            )
+            return render_template("upload_error.html", error_message="Missing CSV file")
 
         result = processor.process_data(
             files=request.files,
@@ -113,9 +109,7 @@ def upload_geojson():
 
         processor = DataProcessorFactory.get_processor("geojson")
         if not processor.validate_files(request.files):
-            return render_template(
-                "upload_error.html", error_message="Missing GeoJSON file"
-            )
+            return render_template("upload_error.html", error_message="Missing GeoJSON file")
 
         result = processor.process_data(
             files=request.files,
@@ -150,14 +144,10 @@ def upload_geopackage():
 
         processor = DataProcessorFactory.get_processor("geopackage")
         if not processor.validate_files(request.files):
-            return render_template(
-                "upload_error.html", error_message="Missing GeoPackage file"
-            )
+            return render_template("upload_error.html", error_message="Missing GeoPackage file")
 
         # Get selected layer if not processing all layers
-        selected_layer = (
-            None if process_all_layers else request.form.get("selected_layer")
-        )
+        selected_layer = None if process_all_layers else request.form.get("selected_layer")
 
         result = processor.process_data(
             files=request.files,
@@ -171,11 +161,7 @@ def upload_geopackage():
             return render_template("upload_success.html", result=result)
 
         # If multiple layers were found and none selected (only when not processing all)
-        if (
-            not result["success"]
-            and "available_layers" in result
-            and not process_all_layers
-        ):
+        if not result["success"] and "available_layers" in result and not process_all_layers:
             return render_template(
                 "upload_error.html",
                 error_message="Please select a layer from the GeoPackage",

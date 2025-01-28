@@ -22,9 +22,7 @@ class CSVProcessor(BaseDataProcessor):
         self.smart_processor = SmartProcessor()
 
     def get_required_files(self) -> Dict[str, str]:
-        return {
-            "csv": "CSV file with spatial data (must include latitude and longitude columns)"
-        }
+        return {"csv": "CSV file with spatial data (must include latitude and longitude columns)"}
 
     def get_file_extensions(self) -> set:
         return {".csv"}
@@ -53,9 +51,7 @@ class CSVProcessor(BaseDataProcessor):
                 df = pd.read_csv(temp_path)
 
                 # Validate and identify coordinate columns
-                lat_col, lon_col = self._identify_coordinate_columns(
-                    df, lat_column, lon_column
-                )
+                lat_col, lon_col = self._identify_coordinate_columns(df, lat_column, lon_column)
 
                 if not (lat_col and lon_col):
                     return {
@@ -90,9 +86,7 @@ class CSVProcessor(BaseDataProcessor):
 
                 logger.info(f"AI Analysis for {layer_name}:")
                 logger.info(f"Suggested Name: {ai_analysis.get('suggested_name')}")
-                logger.info(
-                    f"Suggested Description: {ai_analysis.get('suggested_description')}"
-                )
+                logger.info(f"Suggested Description: {ai_analysis.get('suggested_description')}")
                 logger.info(f"Data Quality Report: {ai_analysis.get('data_quality')}")
 
                 return {
@@ -129,12 +123,7 @@ class CSVProcessor(BaseDataProcessor):
         Returns a tuple of (latitude_column, longitude_column)
         """
         # If columns are specified and valid, use them
-        if (
-            lat_column
-            and lon_column
-            and lat_column in df.columns
-            and lon_column in df.columns
-        ):
+        if lat_column and lon_column and lat_column in df.columns and lon_column in df.columns:
             return lat_column, lon_column
 
         # Common names for latitude and longitude columns
@@ -157,9 +146,7 @@ class CSVProcessor(BaseDataProcessor):
 
         return lat_col, lon_col
 
-    def _process_features(
-        self, gdf: gpd.GeoDataFrame, layer_id: int, db_session: Session
-    ) -> int:
+    def _process_features(self, gdf: gpd.GeoDataFrame, layer_id: int, db_session: Session) -> int:
         """Process features from a GeoDataFrame into the database"""
         features_added = 0
         for idx, row in gdf.iterrows():

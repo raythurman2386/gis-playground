@@ -18,7 +18,7 @@ SQLALCHEMY_DATABASE_URL = f"postgresql://{os.getenv('POSTGRES_USER')}:{os.getenv
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    echo=os.getenv('FLASK_ENV') != 'production',
+    echo=os.getenv("FLASK_ENV") != "production",
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -41,8 +41,12 @@ def check_tables_exist():
 def get_db():
     """Database session generator"""
     if not check_tables_exist():
-        logger.error("Database tables do not exist. Please run 'python manage.py init' to initialize the database.")
-        raise RuntimeError("Database tables do not exist. Please run 'python manage.py init' to initialize the database.")
+        logger.error(
+            "Database tables do not exist. Please run 'python manage.py init' to initialize the database."
+        )
+        raise RuntimeError(
+            "Database tables do not exist. Please run 'python manage.py init' to initialize the database."
+        )
 
     db = SessionLocal()
     try:

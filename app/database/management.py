@@ -30,9 +30,7 @@ def truncate_tables():
             with connection.begin():
                 # Disable foreign key checks temporarily
                 connection.execute(
-                    text(
-                        "ALTER TABLE features DROP CONSTRAINT IF EXISTS features_layer_id_fkey"
-                    )
+                    text("ALTER TABLE features DROP CONSTRAINT IF EXISTS features_layer_id_fkey")
                 )
                 connection.execute(
                     text(

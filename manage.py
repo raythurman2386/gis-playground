@@ -21,9 +21,7 @@ def init():
 @cli.command()
 def truncate():
     """Truncate all tables in the database"""
-    if click.confirm(
-        "Are you sure you want to truncate all tables? This cannot be undone."
-    ):
+    if click.confirm("Are you sure you want to truncate all tables? This cannot be undone."):
         if truncate_tables():
             click.echo("Successfully truncated all tables")
         else:
@@ -33,9 +31,7 @@ def truncate():
 @cli.command()
 def reset():
     """Reset the entire database (drop and recreate all tables)"""
-    if click.confirm(
-        "Are you sure you want to reset the database? This cannot be undone."
-    ):
+    if click.confirm("Are you sure you want to reset the database? This cannot be undone."):
         if reset_database():
             click.echo("Successfully reset the database")
         else:

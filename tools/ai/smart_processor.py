@@ -77,7 +77,7 @@ class SmartProcessor:
             column_scores = {}
 
             for col in gdf.columns:
-                if col == 'geometry':
+                if col == "geometry":
                     continue
 
                 score = 0
@@ -87,7 +87,7 @@ class SmartProcessor:
 
                 # Give higher scores to columns with nouns
                 for word, pos in pos_tags:
-                    if pos.startswith('NN'):
+                    if pos.startswith("NN"):
                         score += 1
                     if word not in self.stop_words:
                         score += 0.5
@@ -96,14 +96,17 @@ class SmartProcessor:
                 sample_values = gdf[col].dropna().astype(str).head(10)
                 if not sample_values.empty:
                     # Check if values are primarily text and meaningful
-                    sample_text = ' '.join(sample_values)
+                    sample_text = " ".join(sample_values)
                     if sample_text.strip():
                         value_tokens = nltk.word_tokenize(sample_text.lower())
                         value_pos = nltk.pos_tag(value_tokens)
 
                         # Count meaningful words in values
-                        meaningful_words = [word for word, pos in value_pos
-                                            if pos.startswith('NN') and word not in self.stop_words]
+                        meaningful_words = [
+                            word
+                            for word, pos in value_pos
+                            if pos.startswith("NN") and word not in self.stop_words
+                        ]
 
                         # Add to score based on meaningful content
                         score += len(set(meaningful_words)) * 0.2
@@ -118,10 +121,12 @@ class SmartProcessor:
             # Get the column with the highest score
             if column_scores:
                 best_column = max(column_scores.items(), key=lambda x: x[1])[0]
-                most_common = gdf[best_column].dropna().mode().iloc[0] if not gdf[best_column].empty else None
+                most_common = (
+                    gdf[best_column].dropna().mode().iloc[0] if not gdf[best_column].empty else None
+                )
 
                 if most_common:
-                    return str(most_common).lower().replace(' ', '_')[:50]
+                    return str(most_common).lower().replace(" ", "_")[:50]
 
             # Generate timestamp-based name if no meaningful name found
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -172,9 +177,7 @@ class SmartProcessor:
 
             # Add attribute information
             if len(numeric_cols) > 0:
-                description_parts.append(
-                    f"It includes {len(numeric_cols)} numeric fields"
-                )
+                description_parts.append(f"It includes {len(numeric_cols)} numeric fields")
                 if len(text_cols) > 0:
                     description_parts.append(f"and {len(text_cols)} text fields.")
                 else:
@@ -188,9 +191,7 @@ class SmartProcessor:
 
             # Add data completeness
             completeness = (1 - gdf.isnull().mean().mean()) * 100
-            description_parts.append(
-                f"The dataset is approximately {completeness:.1f}% complete."
-            )
+            description_parts.append(f"The dataset is approximately {completeness:.1f}% complete.")
 
             # Combine all parts
             description = " ".join(description_parts)
@@ -205,7 +206,9 @@ class SmartProcessor:
 
         except Exception as e:
             logger.error(f"Error generating description: {e}", exc_info=True)
-            return f"Dataset containing {len(gdf)} features of type {gdf.geometry.geom_type.iloc[0]}."
+            return (
+                f"Dataset containing {len(gdf)} features of type {gdf.geometry.geom_type.iloc[0]}."
+            )
 
     def _analyze_data_quality(self, gdf: gpd.GeoDataFrame) -> Dict:
         """Analyze data quality metrics"""
@@ -225,14 +228,10 @@ class SmartProcessor:
                         column_stats.update(
                             {
                                 "mean": (
-                                    float(gdf[col].mean())
-                                    if not gdf[col].isnull().all()
-                                    else None
+                                    float(gdf[col].mean()) if not gdf[col].isnull().all() else None
                                 ),
                                 "std": (
-                                    float(gdf[col].std())
-                                    if not gdf[col].isnull().all()
-                                    else None
+                                    float(gdf[col].std()) if not gdf[col].isnull().all() else None
                                 ),
                             }
                         )
@@ -247,14 +246,10 @@ class SmartProcessor:
 
                             column_stats.update(
                                 {
-                                    "avg_length": np.mean(
-                                        [len(str(x)) for x in non_null_values]
-                                    ),
+                                    "avg_length": np.mean([len(str(x)) for x in non_null_values]),
                                     "common_terms": [
                                         word
-                                        for word, _ in nltk.FreqDist(
-                                            tokens
-                                        ).most_common(5)
+                                        for word, _ in nltk.FreqDist(tokens).most_common(5)
                                         if word.isalpha()
                                     ],
                                 }

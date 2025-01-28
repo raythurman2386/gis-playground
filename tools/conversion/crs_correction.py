@@ -9,9 +9,7 @@ logger = setup_logger(
 )
 
 
-def standardize_crs(
-    gdf: gpd.GeoDataFrame, target_crs: str = "EPSG:4326"
-) -> gpd.GeoDataFrame:
+def standardize_crs(gdf: gpd.GeoDataFrame, target_crs: str = "EPSG:4326") -> gpd.GeoDataFrame:
     """
     Standardize the CRS of a GeoDataFrame to a target CRS
     """
