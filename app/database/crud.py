@@ -4,6 +4,7 @@ from geoalchemy2.shape import from_shape, to_shape
 from shapely.geometry import shape
 from typing import Dict, Any, Optional
 import json
+from .utils import prepare_geometry_for_db
 
 
 def create_spatial_layer(
@@ -24,9 +25,9 @@ def add_feature(
 ) -> Feature:
     """Add a new feature to a layer"""
     try:
-        # Convert GeoJSON geometry to WKB
+        # Convert GeoJSON geometry to Shapely and ensure it's 2D
         shp = shape(geometry)
-        geom = from_shape(shp, srid=4326)
+        geom = prepare_geometry_for_db(shp)
 
         # Ensure properties can be serialized to JSON
         cleaned_properties = json.dumps(properties, default=lambda x: None)
