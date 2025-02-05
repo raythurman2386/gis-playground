@@ -34,10 +34,12 @@ ENV/
 config/local_config.py
 
 # Data
+data/
 data/raw/*
 data/processed/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+cache/
 
 # Logs
 *.log
